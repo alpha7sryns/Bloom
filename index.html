@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bloom - Gentle Period & Cycle Tracker</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind Custom Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        pastel: {
+                            pink: '#ffd1dc',
+                            rose: '#ffb7b2',
+                            peach: '#ffdac1',
+                            lavender: '#e2ece9',
+                            purple: '#dfbff0',
+                            cream: '#fdfbf7',
+                            card: '#ffffff',
+                            text: '#5a4d55',
+                            muted: '#9a8c98'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #fcf8f7;
+            color: #5a4d55;
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #fdfbf7;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #ffb7b2;
+            border-radius: 9999px;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 183, 178, 0.25);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-pink-200 selection:text-pink-900">
+
+    <!-- Top Navigation -->
+    <header class="sticky top-0 z-50 glass-card border-b border-pink-100 px-4 sm:px-8 py-4 flex items-center justify-between shadow-sm">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-pink-300 to-rose-300 flex items-center justify-center text-white shadow-md">
+                <i class="fa-solid fa-spa text-lg"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold bg-gradient-to-r from-pink-500 to-rose-400 bg-clip-text text-transparent">Bloom</h1>
+                <p class="text-xs text-pastel-muted">Gentle Cycle Care</p>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <nav class="hidden md:flex space-x-1 bg-pink-50/60 p-1.5 rounded-full border border-pink-100">
+            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 bg-white text-rose-500 shadow-sm">Dashboard</button>
+            <button onclick="switchTab('calendar')" id="nav-calendar" class="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 text-stone-600 hover:text-rose-500">Calendar & Log</button>
+            <button onclick="switchTab('insights')" id="nav-insights" class="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 text-stone-600 hover:text-rose-500">Insights</button>
+            <button onclick="switchTab('partner')" id="nav-partner" class="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 text-stone-600 hover:text-rose-500">Sweet Notes & Care</button>
+        </nav>
+
+        <div class="flex items-center space-x-2">
+            <button onclick="openSettingsModal()" class="w-10 h-10 rounded-full bg-white border border-pink-200 flex items-center justify-center text-rose-400 hover:bg-pink-50 transition shadow-sm" title="Settings">
+                <i class="fa-solid fa-gear"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Mobile Bottom Bar Navigation -->
+    <div class="md:hidden fixed bottom-0 left-0 right-0 z-50 glass-card border-t border-pink-100 flex justify-around py-3 px-2 shadow-lg">
+        <button onclick="switchTab('dashboard')" id="mobnav-dashboard" class="flex flex-col items-center text-rose-500 text-xs font-medium">
+            <i class="fa-solid fa-house text-lg mb-1"></i>Home
+        </button>
+        <button onclick="switchTab('calendar')" id="mobnav-calendar" class="flex flex-col items-center text-stone-500 text-xs font-medium">
+            <i class="fa-solid fa-calendar-days text-lg mb-1"></i>Calendar
+        </button>
+        <button onclick="switchTab('insights')" id="mobnav-insights" class="flex flex-col items-center text-stone-500 text-xs font-medium">
+            <i class="fa-solid fa-chart-pie text-lg mb-1"></i>Insights
+        </button>
+        <button onclick="switchTab('partner')" id="mobnav-partner" class="flex flex-col items-center text-stone-500 text-xs font-medium">
+            <i class="fa-solid fa-heart text-lg mb-1"></i>Partner
+        </button>
+    </div>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-12 space-y-6">
+
+        <!-- ================= RIGHT NOW REAL-TIME STATUS BANNER ================= -->
+        <div class="bg-gradient-to-r from-rose-500 via-pink-500 to-rose-400 rounded-3xl p-6 sm:p-8 shadow-md text-white relative overflow-hidden">
+            <div class="absolute -right-6 -bottom-6 opacity-15 pointer-events-none">
+                <i class="fa-solid fa-clock text-9xl"></i>
+            </div>
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 z-10 relative">
+                <div class="space-y-1">
+                    <div class="flex items-center space-x-2">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white/20 backdrop-blur text-white">
+                            <span class="w-2 h-2 rounded-full bg-emerald-300 animate-pulse mr-1.5"></span> Right Now Status
+                        </span>
+                        <span id="live-clock-badge" class="text-xs text-pink-100 font-medium">Loading time...</span>
+                    </div>
+                    <h2 id="right-now-title" class="text-2xl sm:text-3xl font-extrabold tracking-tight">Cycle Day 5 • Follicular Phase</h2>
+                    <p id="right-now-subtitle" class="text-sm text-pink-100 font-medium">Next period in 23 days • Everything is flowing smoothly.</p>
+                </div>
+                <div class="flex items-center gap-3 bg-white/15 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/20">
+                    <div class="text-right">
+                        <p class="text-[11px] text-pink-100 uppercase tracking-wider font-semibold">Phase Focus</p>
+                        <p id="right-now-focus" class="text-sm font-bold text-white">Energy rising & skin care</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xl text-white">
+                        <i id="right-now-icon" class="fa-solid fa-seedling"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= DASHBOARD TAB ================= -->
+        <section id="tab-dashboard" class="space-y-6">
+            <!-- Greeting Banner -->
+            <div class="bg-gradient-to-r from-pink-100 via-rose-100 to-peach-100 rounded-3xl p-6 sm:p-8 shadow-sm border border-pink-200/50 flex flex-col md:flex-row justify-between items-center relative overflow-hidden">
+                <div class="absolute -right-10 -bottom-10 opacity-20 pointer-events-none">
+                    <i class="fa-solid fa-spa text-9xl text-rose-300"></i>
+                </div>
+                <div class="space-y-2 z-10 text-center md:text-left mb-4 md:mb-0">
+                    <span class="inline-block px-3 py-1 bg-white/70 backdrop-blur text-rose-600 rounded-full text-xs font-semibold tracking-wide uppercase shadow-sm mb-1">
+                        <i class="fa-solid fa-seedling mr-1"></i> Gentle Care Dashboard
+                    </span>
+                    <h2 id="greeting-title" class="text-2xl sm:text-3xl font-bold text-stone-700">Hello, Beautiful 🌸</h2>
+                    <p id="greeting-subtitle" class="text-sm sm:text-base text-stone-600">Taking care of yourself is the greatest productivity.</p>
+                </div>
+                <div class="z-10 flex gap-3">
+                    <button onclick="openLogTodayModal()" class="px-5 py-3 bg-white text-rose-500 font-semibold rounded-2xl shadow-md hover:bg-rose-500 hover:text-white transition-all duration-300 flex items-center space-x-2 border border-pink-200">
+                        <i class="fa-solid fa-plus-circle"></i>
+                        <span>Log Today</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Overview Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Main Cycle Card -->
+                <div class="md:col-span-2 glass-card rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col justify-between border border-pink-100">
+                    <div class="flex justify-between items-start mb-6">
+                        <div>
+                            <span class="text-xs uppercase tracking-wider text-rose-400 font-semibold">Current Phase Details</span>
+                            <h3 id="current-phase-title" class="text-xl font-bold text-stone-700 mt-1">Follicular Phase</h3>
+                        </div>
+                        <div id="cycle-day-badge" class="px-3.5 py-1.5 bg-pink-100 text-rose-600 rounded-full font-bold text-sm shadow-inner">
+                            Day 5 of 28
+                        </div>
+                    </div>
+
+                    <!-- Visual Progress Bar -->
+                    <div class="space-y-3 my-4">
+                        <div class="flex justify-between text-xs text-stone-500 font-medium">
+                            <span id="prog-start-label">Period Start</span>
+                            <span id="prog-middle-label">Ovulation (~Day 14)</span>
+                            <span id="prog-end-label">Next Period (~Day 28)</span>
+                        </div>
+                        <div class="w-full bg-pink-50 h-4 rounded-full overflow-hidden p-0.5 border border-pink-100 shadow-inner">
+                            <div id="cycle-progress-bar" class="bg-gradient-to-r from-pink-400 to-rose-400 h-full rounded-full transition-all duration-1000" style="width: 20%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Countdown & Details -->
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4 pt-4 border-t border-pink-50">
+                        <div class="bg-pink-50/50 p-4 rounded-2xl border border-pink-100/60">
+                            <p class="text-xs text-stone-500 font-medium">Next Period In</p>
+                            <p id="stat-days-until" class="text-2xl font-extrabold text-rose-500 mt-1">23 days</p>
+                        </div>
+                        <div class="bg-pink-50/50 p-4 rounded-2xl border border-pink-100/60">
+                            <p class="text-xs text-stone-500 font-medium">Fertile Window</p>
+                            <p id="stat-fertile-status" class="text-sm font-bold text-stone-700 mt-1">Starts in 9 days</p>
+                        </div>
+                        <div class="col-span-2 sm:col-span-1 bg-pink-50/50 p-4 rounded-2xl border border-pink-100/60 flex flex-col justify-center">
+                            <p class="text-xs text-stone-500 font-medium">Chance of Conception</p>
+                            <p id="stat-conception" class="text-sm font-bold text-rose-500 mt-1">Low</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Daily Tip / Quick Companion Card -->
+                <div class="glass-card rounded-3xl p-6 shadow-sm flex flex-col justify-between border border-pink-100 bg-gradient-to-b from-white to-pink-50/30">
+                    <div>
+                        <div class="flex items-center space-x-2 mb-3">
+                            <div class="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center text-rose-500">
+                                <i class="fa-solid fa-heart text-sm"></i>
+                            </div>
+                            <h4 class="font-bold text-stone-700 text-sm">Daily Partner Care Tip</h4>
+                        </div>
+                        <p id="daily-tip-text" class="text-stone-600 text-sm italic leading-relaxed">
+                            "Make sure she has her favorite herbal tea and a cozy warm blanket tonight."
+                        </p>
+                    </div>
+                    <div class="mt-6 pt-4 border-t border-pink-100 flex justify-between items-center">
+                        <span class="text-xs text-rose-400 font-medium">From your loving partner ❤️</span>
+                        <button onclick="switchTab('partner')" class="text-xs bg-rose-500 text-white px-3 py-1.5 rounded-xl font-medium hover:bg-rose-600 transition shadow-sm">View Notes</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Symptom Log Bar -->
+            <div class="glass-card rounded-3xl p-6 shadow-sm border border-pink-100">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
+                    <div>
+                        <h4 class="font-bold text-stone-700">Quick Daily Check-in</h4>
+                        <p class="text-xs text-stone-500">Tap how you're feeling today to instantly record it.</p>
+                    </div>
+                    <span id="quick-log-date" class="text-xs bg-pink-100 text-rose-600 font-semibold px-3 py-1 rounded-full">Today</span>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-3" id="quick-symptoms-grid">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= CALENDAR TAB ================= -->
+        <section id="tab-calendar" class="hidden space-y-6">
+            <div class="glass-card rounded-3xl p-6 sm:p-8 shadow-sm border border-pink-100">
+                <!-- Header / Month Switcher -->
+                <div class="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
+                    <div class="flex items-center space-x-3">
+                        <h3 id="cal-month-year" class="text-2xl font-bold text-stone-700">October 2026</h3>
+                        <div class="flex space-x-1 bg-pink-50 p-1 rounded-xl border border-pink-100">
+                            <button onclick="changeMonth(-1)" class="w-8 h-8 rounded-lg bg-white text-stone-600 hover:bg-rose-500 hover:text-white transition shadow-sm flex items-center justify-center">
+                                <i class="fa-solid fa-chevron-left text-xs"></i>
+                            </button>
+                            <button onclick="changeMonth(1)" class="w-8 h-8 rounded-lg bg-white text-stone-600 hover:bg-rose-500 hover:text-white transition shadow-sm flex items-center justify-center">
+                                <i class="fa-solid fa-chevron-right text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Legend -->
+                    <div class="flex flex-wrap items-center gap-3 text-xs text-stone-600">
+                        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-rose-400"></span> Period</span>
+                        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-pink-200"></span> Predicted</span>
+                        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-200"></span> Ovulation</span>
+                        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-purple-200"></span> Fertile</span>
+                    </div>
+                </div>
+
+                <!-- Calendar Grid -->
+                <div class="grid grid-cols-7 gap-1 sm:gap-2 text-center">
+                    <div class="text-xs font-bold text-stone-400 py-2">Sun</div>
+                    <div class="text-xs font-bold text-stone-400 py-2">Mon</div>
+                    <div class="text-xs font-bold text-stone-400 py-2">Tue</div>
+                    <div class="text-xs font-bold text-stone-400 py-2">Wed</div>
+                    <div class="text-xs font-bold text-stone-400 py-2">Thu</div>
+                    <div class="text-xs font-bold text-stone-400 py-2">Fri</div>
+                    <div class="text-xs font-bold text-stone-400 py-2">Sat</div>
+                </div>
+                <div id="calendar-days-grid" class="grid grid-cols-7 gap-1 sm:gap-2 mt-2">
+                    <!-- Days generated dynamically -->
+                </div>
+            </div>
+
+            <!-- Day Detail & Log Modal / Panel -->
+            <div id="day-log-panel" class="glass-card rounded-3xl p-6 sm:p-8 shadow-sm border border-pink-100 hidden">
+                <div class="flex justify-between items-center mb-6 border-b border-pink-100 pb-4">
+                    <div>
+                        <span class="text-xs font-semibold text-rose-500 uppercase tracking-wider">Log & Details for</span>
+                        <h4 id="selected-date-title" class="text-xl font-bold text-stone-700">October 24, 2026</h4>
+                    </div>
+                    <button onclick="closeDayLogPanel()" class="text-stone-400 hover:text-stone-700 text-lg">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Flow & Period Status -->
+                    <div class="space-y-4">
+                        <label class="block text-sm font-semibold text-stone-700">Period Flow Level</label>
+                        <div class="grid grid-cols-5 gap-2" id="flow-options">
+                            <button onclick="selectFlow('None')" data-flow="None" class="flow-btn py-2.5 rounded-xl border border-pink-200 text-xs font-medium text-stone-600 hover:bg-pink-50 transition">None</button>
+                            <button onclick="selectFlow('Spotting')" data-flow="Spotting" class="flow-btn py-2.5 rounded-xl border border-pink-200 text-xs font-medium text-stone-600 hover:bg-pink-50 transition">Spotting</button>
+                            <button onclick="selectFlow('Light')" data-flow="Light" class="flow-btn py-2.5 rounded-xl border border-pink-200 text-xs font-medium text-stone-600 hover:bg-pink-50 transition">Light</button>
+                            <button onclick="selectFlow('Medium')" data-flow="Medium" class="flow-btn py-2.5 rounded-xl border border-pink-200 text-xs font-medium text-stone-600 hover:bg-pink-50 transition">Medium</button>
+                            <button onclick="selectFlow('Heavy')" data-flow="Heavy" class="flow-btn py-2.5 rounded-xl border border-pink-200 text-xs font-medium text-stone-600 hover:bg-pink-50 transition">Heavy</button>
+                        </div>
+                        <div class="pt-2">
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" id="log-is-period-start" class="w-5 h-5 text-rose-500 rounded border-pink-300 focus:ring-rose-400">
+                                <span class="text-sm font-medium text-stone-700">Mark as Period Start Day (Updates cycle calculations)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Symptoms & Moods -->
+                    <div class="space-y-4">
+                        <label class="block text-sm font-semibold text-stone-700">Symptoms & Moods</label>
+                        <div class="flex flex-wrap gap-2" id="day-symptom-tags">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notes -->
+                <div class="mt-6 pt-4 border-t border-pink-100">
+                    <label class="block text-sm font-semibold text-stone-700 mb-2">Personal Notes & Reflections</label>
+                    <textarea id="day-notes-input" rows="3" placeholder="How are you feeling today? Any cravings or special thoughts..." class="w-full p-4 rounded-2xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-rose-300 text-sm bg-white/70"></textarea>
+                </div>
+
+                <div class="mt-6 flex justify-end space-x-3">
+                    <button onclick="closeDayLogPanel()" class="px-5 py-2.5 rounded-xl border border-pink-200 text-stone-600 font-medium hover:bg-pink-50 transition text-sm">Cancel</button>
+                    <button onclick="saveDayLog()" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-pink-400 to-rose-400 text-white font-semibold shadow-md hover:opacity-95 transition text-sm">Save Log</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= INSIGHTS TAB ================= -->
+        <section id="tab-insights" class="hidden space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="glass-card rounded-3xl p-6 shadow-sm border border-pink-100 text-center">
+                    <div class="w-12 h-12 rounded-2xl bg-pink-100 text-rose-500 flex items-center justify-center mx-auto mb-3 text-xl">
+                        <i class="fa-solid fa-arrows-spin"></i>
+                    </div>
+                    <p class="text-xs text-stone-500 font-medium">Average Cycle Length</p>
+                    <h3 id="insight-avg-cycle" class="text-3xl font-extrabold text-stone-700 mt-1">28 Days</h3>
+                    <p class="text-xs text-rose-400 mt-2 font-medium">Based on your settings</p>
+                </div>
+                <div class="glass-card rounded-3xl p-6 shadow-sm border border-pink-100 text-center">
+                    <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-500 flex items-center justify-center mx-auto mb-3 text-xl">
+                        <i class="fa-solid fa-droplet"></i>
+                    </div>
+                    <p class="text-xs text-stone-500 font-medium">Average Period Duration</p>
+                    <h3 id="insight-avg-period" class="text-3xl font-extrabold text-stone-700 mt-1">5 Days</h3>
+                    <p class="text-xs text-rose-400 mt-2 font-medium">Standard bleed length</p>
+                </div>
+                <div class="glass-card rounded-3xl p-6 shadow-sm border border-pink-100 text-center">
+                    <div class="w-12 h-12 rounded-2xl bg-amber-100 text-rose-500 flex items-center justify-center mx-auto mb-3 text-xl">
+                        <i class="fa-solid fa-calendar-check"></i>
+                    </div>
+                    <p class="text-xs text-stone-500 font-medium">Logged Cycles Recorded</p>
+                    <h3 id="insight-total-logs" class="text-3xl font-extrabold text-stone-700 mt-1">3</h3>
+                    <p class="text-xs text-rose-400 mt-2 font-medium">Synced with browser</p>
+                </div>
+            </div>
+
+            <!-- Future Predictions List -->
+            <div class="glass-card rounded-3xl p-6 sm:p-8 shadow-sm border border-pink-100">
+                <h3 class="text-xl font-bold text-stone-700 mb-4">Upcoming Cycle Predictions</h3>
+                <div class="space-y-3" id="predictions-list">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+
+            <!-- Common Symptoms Frequency -->
+            <div class="glass-card rounded-3xl p-6 sm:p-8 shadow-sm border border-pink-100">
+                <h3 class="text-xl font-bold text-stone-700 mb-2">Logged Symptoms Overview</h3>
+                <p class="text-xs text-stone-500 mb-6">Most frequent symptoms logged across your calendar history.</p>
+                <div class="space-y-4" id="symptoms-stats-list">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= PARTNER NOTES & CARE TAB ================= -->
+        <section id="tab-partner" class="hidden space-y-6">
+            <!-- Header Banner -->
+            <div class="bg-gradient-to-r from-rose-100 via-pink-100 to-purple-100 rounded-3xl p-6 sm:p-8 shadow-sm border border-pink-200/50 flex flex-col md:flex-row justify-between items-center">
+                <div class="space-y-2 mb-4 md:mb-0">
+                    <span class="inline-block px-3 py-1 bg-white/70 backdrop-blur text-rose-600 rounded-full text-xs font-semibold tracking-wide uppercase shadow-sm mb-1">
+                        <i class="fa-solid fa-heart mr-1"></i> Partner View & Care Guide
+                    </span>
+                    <h3 class="text-2xl font-bold text-stone-700">Husband / Partner View</h3>
+                    <p class="text-sm text-stone-600">See her current cycle phase, support recommendations, and leave sweet love notes.</p>
+                </div>
+                <button onclick="openAddNoteModal()" class="px-5 py-3 bg-white text-rose-500 font-semibold rounded-2xl shadow-md hover:bg-rose-500 hover:text-white transition-all duration-300 flex items-center space-x-2 border border-pink-200">
+                    <i class="fa-solid fa-pen-nib"></i>
+                    <span>Leave a Sweet Note</span>
+                </button>
+            </div>
+
+            <!-- Partner Summary Highlights Card -->
+            <div class="glass-card rounded-3xl p-6 sm:p-8 shadow-sm border border-pink-100 grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div class="p-5 rounded-2xl bg-pink-50/70 border border-pink-100">
+                    <p class="text-xs font-medium text-stone-500">Her Current Status</p>
+                    <h4 id="partner-view-phase" class="text-lg font-bold text-stone-700 mt-1">Follicular Phase</h4>
+                    <p id="partner-view-day" class="text-xs text-rose-500 font-semibold mt-1">Day 5 of 28</p>
+                </div>
+                <div class="p-5 rounded-2xl bg-pink-50/70 border border-pink-100">
+                    <p class="text-xs font-medium text-stone-500">Next Period Countdown</p>
+                    <h4 id="partner-view-countdown" class="text-lg font-bold text-rose-500 mt-1">23 Days remaining</h4>
+                    <p class="text-xs text-stone-600 mt-1">On track for predicted date</p>
+                </div>
+                <div class="p-5 rounded-2xl bg-pink-50/70 border border-pink-100">
+                    <p class="text-xs font-medium text-stone-500">Partner Action Priority</p>
+                    <h4 class="text-lg font-bold text-stone-700 mt-1">Encouragement & Treats</h4>
+                    <p class="text-xs text-rose-500 font-semibold mt-1">Energy levels are building up</p>
+                </div>
+            </div>
+
+            <!-- Partner Support Tips Grid -->
+            <div>
+                <h4 class="text-lg font-bold text-stone-700 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-gift text-rose-400"></i> Partner Support Guide & Ideas
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="partner-tips-grid">
+                    <!-- Rendered via JS -->
+                </div>
+            </div>
+
+            <!-- Love Notes & Affirmations Board -->
+            <div class="glass-card rounded-3xl p-6 sm:p-8 shadow-sm border border-pink-100 mt-8">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h4 class="text-lg font-bold text-stone-700">Love Notes & Affirmations Wall</h4>
+                        <p class="text-xs text-stone-500">Read sweet messages left for each other.</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4" id="love-notes-wall">
+                    <!-- Rendered via JS -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center py-6 text-xs text-stone-500 border-t border-pink-100/60 space-y-1">
+        <p>Made with 💖 for gentle cycle care & partner support. All data saved locally on your device.</p>
+        <p class="font-bold text-rose-500 tracking-wide">Designed by SHREYANSH RAI</p>
+    </footer>
+
+    <!-- ================= MODALS ================= -->
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="fixed inset-0 z-50 bg-stone-900/40 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="glass-card rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-xl border border-pink-200 bg-white">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-stone-700">Cycle Settings</h3>
+                <button onclick="closeSettingsModal()" class="text-stone-400 hover:text-stone-700">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-stone-600 mb-1">Last Period Start Date</label>
+                    <input type="date" id="setting-last-start" class="w-full p-3 rounded-xl border border-pink-200 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-stone-600 mb-1">Average Cycle Length (Days)</label>
+                    <input type="number" id="setting-cycle-length" min="21" max="45" class="w-full p-3 rounded-xl border border-pink-200 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300" value="28">
+                    <span class="text-[11px] text-stone-400 mt-1 block">Normal range is typically 21 to 35 days.</span>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-stone-600 mb-1">Average Period Duration (Days)</label>
+                    <input type="number" id="setting-period-length" min="2" max="10" class="w-full p-3 rounded-xl border border-pink-200 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300" value="5">
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end space-x-3">
+                <button onclick="closeSettingsModal()" class="px-4 py-2.5 rounded-xl border border-pink-200 text-stone-600 text-sm font-medium hover:bg-pink-50">Cancel</button>
+                <button onclick="saveSettings()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-pink-400 to-rose-400 text-white text-sm font-semibold shadow-md hover:opacity-95">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Love Note Modal -->
+    <div id="add-note-modal" class="fixed inset-0 z-50 bg-stone-900/40 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="glass-card rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-xl border border-pink-200 bg-white">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-stone-700">Leave a Sweet Note</h3>
+                <button onclick="closeAddNoteModal()" class="text-stone-400 hover:text-stone-700">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-stone-600 mb-1">Your Message / Affirmation</label>
+                    <textarea id="new-note-text" rows="4" placeholder="e.g., You're doing amazing today, gorgeous! Don't forget to drink water. ❤️" class="w-full p-3 rounded-xl border border-pink-200 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-stone-600 mb-1">From / Author</label>
+                    <input type="text" id="new-note-author" placeholder="e.g., Your loving partner" class="w-full p-3 rounded-xl border border-pink-200 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300" value="Her Partner">
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end space-x-3">
+                <button onclick="closeAddNoteModal()" class="px-4 py-2.5 rounded-xl border border-pink-200 text-stone-600 text-sm font-medium hover:bg-pink-50">Cancel</button>
+                <button onclick="saveNewNote()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-pink-400 to-rose-400 text-white text-sm font-semibold shadow-md hover:opacity-95">Post Note</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 bg-stone-800 text-white px-5 py-3 rounded-2xl shadow-xl text-sm font-medium opacity-0 pointer-events-none transition-all duration-300 flex items-center space-x-2">
+        <i class="fa-solid fa-circle-check text-rose-400"></i>
+        <span id="toast-msg">Action successful!</span>
+    </div>
+
+    <!-- ================= JAVASCRIPT ================= -->
+    <script>
+        // --- Data & State Management ---
+        const DEFAULT_SETTINGS = {
+            lastPeriodStart: formatDateString(new Date(Date.now() - 5 * 86400000)), // 5 days ago
+            cycleLength: 28,
+            periodLength: 5
+        };
+
+        const SYMPTOM_LIST = [
+            { id: 'cramps', name: 'Cramps', icon: 'fa-bolt', emoji: '⚡' },
+            { id: 'headache', name: 'Headache', icon: 'fa-head-side-pain', emoji: '🤕' },
+            { id: 'fatigue', name: 'Fatigue', icon: 'fa-battery-quarter', emoji: '🔋' },
+            { id: 'mood', name: 'Mood Swings', icon: 'fa-face-rolling-eyes', emoji: '🎭' },
+            { id: 'acne', name: 'Skin Breakout', icon: 'fa-face-smile', emoji: '🌱' },
+            { id: 'bloating', name: 'Bloating', icon: 'fa-cookie', emoji: '🍪' },
+            { id: 'cravings', name: 'Cravings', icon: 'fa-burger', emoji: '🍫' },
+            { id: 'happy', name: 'Happy', icon: 'fa-face-smile-beam', emoji: '✨' }
+        ];
+
+        const PARTNER_TIPS = [
+            {
+                title: "Chocolate & Treats 🍫",
+                desc: "Bring her favorite dark chocolate or comforting treat without her having to ask.",
+                icon: "fa-cookie-bite",
+                color: "bg-rose-50 text-rose-500 border-rose-100"
+            },
+            {
+                title: "Gentle Lower Back Massage 💆‍♀️",
+                desc: "Offer a soft, comforting back or foot massage to ease cramps and tension.",
+                icon: "fa-hands-holding",
+                color: "bg-pink-50 text-pink-500 border-pink-100"
+            },
+            {
+                title: "Cozy Movie Night 🍿",
+                desc: "Set up her favorite comfort movie, warm blanket, and hot water bottle or herbal tea.",
+                icon: "fa-film",
+                color: "bg-purple-50 text-purple-500 border-purple-100"
+            },
+            {
+                title: "Extra Patience & Warm Hugs 🤗",
+                desc: "Emotions can fluctuate during cycle shifts. Offer reassurance, patience, and warm hugs.",
+                icon: "fa-heart",
+                color: "bg-amber-50 text-amber-500 border-amber-100"
+            },
+            {
+                title: "Take Over Chores 🧹",
+                desc: "Take care of dinner, dishes, or laundry so she can rest and recharge fully.",
+                icon: "fa-broom",
+                color: "bg-emerald-50 text-emerald-600 border-emerald-100"
+            },
+            {
+                title: "Sweet Affirmations ✨",
+                desc: "Remind her how wonderful, beautiful, and loved she is, especially on low-energy days.",
+                icon: "fa-wand-magic-sparkles",
+                color: "bg-blue-50 text-blue-500 border-blue-100"
+            }
+        ];
+
+        const DEFAULT_NOTES = [
+            { text: "You are glowing today, even on cozy rest days! ❤️", author: "Her Partner", date: "Today" },
+            { text: "Got your favorite raspberry tea and warm cookies ready for tonight!", author: "Her Partner", date: "Yesterday" },
+            { text: "Reminder: Take things slow. You don't have to do everything today. ✨", author: "Shreyansh", date: "2 days ago" }
+        ];
+
+        let settings = JSON.parse(localStorage.getItem('bloom_settings')) || DEFAULT_SETTINGS;
+        let logs = JSON.parse(localStorage.getItem('bloom_logs')) || {};
+        let loveNotes = JSON.parse(localStorage.getItem('bloom_notes')) || DEFAULT_NOTES;
+
+        let currentTab = 'dashboard';
+        let calendarYear = new Date().getFullYear();
+        let calendarMonth = new Date().getMonth();
+        let selectedDateStr = formatDateString(new Date());
+        let tempSelectedFlow = 'None';
+        let tempSelectedSymptoms = [];
+
+        // --- Initialization ---
+        window.onload = function() {
+            initQuickSymptoms();
+            updateRightNowBanner();
+            renderDashboard();
+            renderCalendar();
+            renderInsights();
+            renderPartnerSection();
+            
+            // Sync settings modal inputs
+            document.getElementById('setting-last-start').value = settings.lastPeriodStart;
+            document.getElementById('setting-cycle-length').value = settings.cycleLength;
+            document.getElementById('setting-period-length').value = settings.periodLength;
+
+            // Start Live Clock interval
+            setInterval(updateRightNowBanner, 1000);
+        };
+
+        // --- Tab Switching ---
+        function switchTab(tabId) {
+            currentTab = tabId;
+            const tabs = ['dashboard', 'calendar', 'insights', 'partner'];
+            tabs.forEach(t => {
+                const section = document.getElementById(`tab-${t}`);
+                const navBtn = document.getElementById(`nav-${t}`);
+                const mobBtn = document.getElementById(`mobnav-${t}`);
+                
+                if (t === tabId) {
+                    section.classList.remove('hidden');
+                    if(navBtn) {
+                        navBtn.className = "px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 bg-white text-rose-500 shadow-sm";
+                    }
+                    if(mobBtn) {
+                        mobBtn.className = "flex flex-col items-center text-rose-500 text-xs font-medium";
+                    }
+                } else {
+                    section.classList.add('hidden');
+                    if(navBtn) {
+                        navBtn.className = "px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 text-stone-600 hover:text-rose-500";
+                    }
+                    if(mobBtn) {
+                        mobBtn.className = "flex flex-col items-center text-stone-500 text-xs font-medium";
+                    }
+                }
+            });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // --- Helper Date Functions ---
+        function formatDateString(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function parseDateString(str) {
+            const parts = str.split('-');
+            return new Date(parts[0], parts[1] - 1, parts[2]);
+        }
+
+        // --- Calculations ---
+        function getCycleCalculations() {
+            const lastStart = parseDateString(settings.lastPeriodStart);
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            lastStart.setHours(0,0,0,0);
+
+            const diffTime = today - lastStart;
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            
+            let currentCycleDay = (diffDays % settings.cycleLength) + 1;
+            if (currentCycleDay < 1) currentCycleDay = 1;
+
+            const daysUntilNext = settings.cycleLength - currentCycleDay >= 0 ? settings.cycleLength - currentCycleDay : 0;
+            
+            // Phase determination
+            let phaseName = "Follicular Phase";
+            let phaseFocus = "Energy rising & skin care";
+            let phaseIcon = "fa-seedling";
+
+            if (currentCycleDay <= settings.periodLength) {
+                phaseName = "Menstrual Phase (Period)";
+                phaseFocus = "Rest, warmth & hydration";
+                phaseIcon = "fa-droplet";
+            } else if (currentCycleDay >= 12 && currentCycleDay <= 16) {
+                phaseName = "Ovulation Phase ✨";
+                phaseFocus = "Peak energy & vitality";
+                phaseIcon = "fa-bolt";
+            } else if (currentCycleDay > 16) {
+                phaseName = "Luteal Phase";
+                phaseFocus = "Self-care & gentle comfort";
+                phaseIcon = "fa-moon";
+            } else {
+                phaseName = "Follicular Phase 🌱";
+                phaseFocus = "Energy rising & focus";
+                phaseIcon = "fa-seedling";
+            }
+
+            return {
+                currentCycleDay,
+                daysUntilNext,
+                phaseName,
+                phaseFocus,
+                phaseIcon,
+                lastStart
+            };
+        }
+
+        // --- Real-time Right Now Banner Updater ---
+        function updateRightNowBanner() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const dateString = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+            document.getElementById('live-clock-badge').textContent = `${dateString} • ${timeString}`;
+
+            const calc = getCycleCalculations();
+            document.getElementById('right-now-title').textContent = `Cycle Day ${calc.currentCycleDay} • ${calc.phaseName}`;
+            document.getElementById('right-now-subtitle').textContent = `Next period in ${calc.daysUntilNext} days • Taking gentle care today.`;
+            document.getElementById('right-now-focus').textContent = calc.phaseFocus;
+            
+            const iconEl = document.getElementById('right-now-icon');
+            iconEl.className = `fa-solid ${calc.phaseIcon}`;
+        }
+
+        // --- Dashboard Renderer ---
+        function renderDashboard() {
+            const calc = getCycleCalculations();
+            
+            document.getElementById('current-phase-title').textContent = calc.phaseName;
+            document.getElementById('cycle-day-badge').textContent = `Day ${calc.currentCycleDay} of ${settings.cycleLength}`;
+            
+            // Progress bar
+            const percent = Math.min(100, Math.max(5, (calc.currentCycleDay / settings.cycleLength) * 100));
+            document.getElementById('cycle-progress-bar').style.width = `${percent}%`;
+
+            document.getElementById('stat-days-until').textContent = `${calc.daysUntilNext} days`;
+            
+            // Fertile window indicator
+            const fertileStart = 11;
+            const fertileEnd = 16;
+            let fertileText = "";
+            if (calc.currentCycleDay >= fertileStart && calc.currentCycleDay <= fertileEnd) {
+                fertileText = "Happening Now 🔥";
+                document.getElementById('stat-conception').textContent = "High";
+            } else if (calc.currentCycleDay < fertileStart) {
+                const daysToFertile = fertileStart - calc.currentCycleDay;
+                fertileText = `Starts in ${daysToFertile} days`;
+                document.getElementById('stat-conception').textContent = "Low";
+            } else {
+                fertileText = "Passed for this cycle";
+                document.getElementById('stat-conception').textContent = "Low";
+            }
+            document.getElementById('stat-fertile-status').textContent = fertileText;
+
+            // Daily Partner Tip random rotation based on day
+            const tipIdx = (calc.currentCycleDay + new Date().getDate()) % PARTNER_TIPS.length;
+            document.getElementById('daily-tip-text').textContent = `"${PARTNER_TIPS[tipIdx].desc}"`;
+        }
+
+        // --- Quick Symptoms Bar ---
+        function initQuickSymptoms() {
+            const container = document.getElementById('quick-symptoms-grid');
+            container.innerHTML = '';
+            
+            const todayStr = formatDateString(new Date());
+            const todayLog = logs[todayStr] || { symptoms: [] };
+
+            SYMPTOM_LIST.forEach(sym => {
+                const isSelected = todayLog.symptoms && todayLog.symptoms.includes(sym.id);
+                const btn = document.createElement('button');
+                btn.className = `p-3 rounded-2xl border flex flex-col items-center justify-center transition-all duration-200 text-xs font-medium ${
+                    isSelected 
+                        ? 'bg-rose-500 text-white border-rose-500 shadow-sm' 
+                        : 'bg-white/80 border-pink-200 text-stone-600 hover:bg-pink-50'
+                }`;
+                btn.innerHTML = `<span class="text-lg mb-1">${sym.emoji}</span><span>${sym.name}</span>`;
+                btn.onclick = () => toggleQuickSymptom(sym.id);
+                container.appendChild(btn);
+            });
+        }
+
+        function toggleQuickSymptom(symId) {
+            const todayStr = formatDateString(new Date());
+            if (!logs[todayStr]) {
+                logs[todayStr] = { flow: 'None', symptoms: [], notes: '' };
+            }
+            const idx = logs[todayStr].symptoms.indexOf(symId);
+            if (idx > -1) {
+                logs[todayStr].symptoms.splice(idx, 1);
+            } else {
+                logs[todayStr].symptoms.push(symId);
+            }
+            localStorage.setItem('bloom_logs', JSON.stringify(logs));
+            initQuickSymptoms();
+            showToast("Updated today's symptoms!");
+        }
+
+        // --- Calendar View Renderer ---
+        function renderCalendar() {
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            document.getElementById('cal-month-year').textContent = `${monthNames[calendarMonth]} ${calendarYear}`;
+
+            const grid = document.getElementById('calendar-days-grid');
+            grid.innerHTML = '';
+
+            const firstDayIndex = new Date(calendarYear, calendarMonth, 1).getDay();
+            const totalDays = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+
+            const lastStart = parseDateString(settings.lastPeriodStart);
+            
+            // Blank padding for start of month
+            for (let i = 0; i < firstDayIndex; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = "h-20 sm:h-24 rounded-2xl bg-stone-50/30 border border-transparent";
+                grid.appendChild(emptyCell);
+            }
+
+            for (let day = 1; day <= totalDays; day++) {
+                const dateObj = new Date(calendarYear, calendarMonth, day);
+                dateObj.setHours(0,0,0,0);
+                const dateStr = formatDateString(dateObj);
+
+                const diffTime = dateObj - lastStart;
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                
+                let isPeriod = false;
+                let isPredictedPeriod = false;
+                let isOvulation = false;
+                let isFertile = false;
+
+                if (diffDays >= 0) {
+                    const cycleDay = (diffDays % settings.cycleLength) + 1;
+                    if (cycleDay <= settings.periodLength) isPeriod = true;
+                    if (cycleDay >= 12 && cycleDay <= 14) isOvulation = true;
+                    if (cycleDay >= 10 && cycleDay <= 16) isFertile = true;
+                } else {
+                    const absDiff = Math.abs(diffDays);
+                    const cycleDay = settings.cycleLength - (absDiff % settings.cycleLength);
+                    if (cycleDay <= settings.periodLength) isPredictedPeriod = true;
+                }
+
+                if (!isPeriod && diffDays >= 0) {
+                    const cycleDay = (diffDays % settings.cycleLength) + 1;
+                    if (cycleDay <= settings.periodLength) isPredictedPeriod = true;
+                }
+
+                const dayLog = logs[dateStr];
+                const cell = document.createElement('div');
+                let cellBg = "bg-white/80 border-pink-100 hover:border-rose-300";
+                let badgeIndicator = "";
+
+                if (isPeriod || (dayLog && dayLog.flow !== 'None' && dayLog.flow !== undefined)) {
+                    cellBg = "bg-rose-100/80 border-rose-300 text-rose-800 font-bold";
+                    badgeIndicator = `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block"></span>`;
+                } else if (isOvulation) {
+                    cellBg = "bg-amber-50 border-amber-200 text-amber-800";
+                    badgeIndicator = `<span class="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span>`;
+                } else if (isFertile) {
+                    cellBg = "bg-purple-50/60 border-purple-200";
+                    badgeIndicator = `<span class="w-1.5 h-1.5 rounded-full bg-purple-400 inline-block"></span>`;
+                } else if (isPredictedPeriod) {
+                    cellBg = "bg-pink-50 border-pink-200 text-rose-700";
+                    badgeIndicator = `<span class="w-1.5 h-1.5 rounded-full bg-pink-300 inline-block"></span>`;
+                }
+
+                const isToday = dateStr === formatDateString(new Date());
+                if (isToday) {
+                    cellBg += " ring-2 ring-rose-400 ring-offset-1";
+                }
+
+                cell.className = `h-20 sm:h-24 rounded-2xl border p-2 flex flex-col justify-between cursor-pointer transition-all duration-200 shadow-sm ${cellBg}`;
+                
+                let symptomEmojis = "";
+                if (dayLog && dayLog.symptoms) {
+                    symptomEmojis = dayLog.symptoms.slice(0, 2).map(sId => {
+                        const s = SYMPTOM_LIST.find(x => x.id === sId);
+                        return s ? s.emoji : '';
+                    }).join('');
+                }
+
+                cell.innerHTML = `
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="${isToday ? 'bg-rose-500 text-white w-5 h-5 rounded-full flex items-center justify-center font-bold' : 'font-semibold text-stone-700'}">${day}</span>
+                        ${badgeIndicator}
+                    </div>
+                    <div class="text-center my-auto">
+                        <span class="text-sm">${symptomEmojis}</span>
+                        ${dayLog && dayLog.notes ? '<i class="fa-solid fa-note-sticky text-rose-400 text-[10px] block mt-0.5"></i>' : ''}
+                    </div>
+                `;
+
+                cell.onclick = () => openDayLogPanelForDate(dateStr);
+                grid.appendChild(cell);
+            }
+        }
+
+        function changeMonth(dir) {
+            calendarMonth += dir;
+            if (calendarMonth > 11) {
+                calendarMonth = 0;
+                calendarYear++;
+            } else if (calendarMonth < 0) {
+                calendarMonth = 11;
+                calendarYear--;
+            }
+            renderCalendar();
+        }
+
+        // --- Day Log Panel ---
+        function openDayLogPanelForDate(dateStr) {
+            selectedDateStr = dateStr;
+            const dateObj = parseDateString(dateStr);
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('selected-date-title').textContent = dateObj.toLocaleDateString('en-US', options);
+
+            const dayLog = logs[dateStr] || { flow: 'None', symptoms: [], notes: '' };
+            tempSelectedFlow = dayLog.flow || 'None';
+            tempSelectedSymptoms = [...(dayLog.symptoms || [])];
+
+            document.querySelectorAll('.flow-btn').forEach(btn => {
+                if (btn.getAttribute('data-flow') === tempSelectedFlow) {
+                    btn.className = "flow-btn py-2.5 rounded-xl border border-rose-400 bg-rose-500 text-white text-xs font-semibold shadow-sm transition";
+                } else {
+                    btn.className = "flow-btn py-2.5 rounded-xl border border-pink-200 text-xs font-medium text-stone-600 hover:bg-pink-50 transition";
+                }
+            });
+
+            document.getElementById('log-is-period-start').checked = (dateStr === settings.lastPeriodStart);
+
+            const tagsContainer = document.getElementById('day-symptom-tags');
+            tagsContainer.innerHTML = '';
+            SYMPTOM_LIST.forEach(sym => {
+                const active = tempSelectedSymptoms.includes(sym.id);
+                const tagBtn = document.createElement('button');
+                tagBtn.className = `px-3.5 py-2 rounded-xl text-xs font-medium border flex items-center space-x-2 transition ${
+                    active 
+                        ? 'bg-rose-500 text-white border-rose-500 shadow-sm' 
+                        : 'bg-white border-pink-200 text-stone-600 hover:bg-pink-50'
+                }`;
+                tagBtn.innerHTML = `<span>${sym.emoji}</span><span>${sym.name}</span>`;
+                tagBtn.onclick = () => {
+                    const idx = tempSelectedSymptoms.indexOf(sym.id);
+                    if (idx > -1) tempSelectedSymptoms.splice(idx, 1);
+                    else tempSelectedSymptoms.push(sym.id);
+                    openDayLogPanelForDate(selectedDateStr);
+                };
+                tagsContainer.appendChild(tagBtn);
+            });
+
+            document.getElementById('day-notes-input').value = dayLog.notes || '';
+            document.getElementById('day-log-panel').classList.remove('hidden');
+        }
+
+        function selectFlow(flowVal) {
+            tempSelectedFlow = flowVal;
+            document.querySelectorAll('.flow-btn').forEach(btn => {
+                if (btn.getAttribute('data-flow') === tempSelectedFlow) {
+                    btn.className = "flow-btn py-2.5 rounded-xl border border-rose-400 bg-rose-500 text-white text-xs font-semibold shadow-sm transition";
+                } else {
+                    btn.className = "flow-btn py-2.5 rounded-xl border border-pink-200 text-xs font-medium text-stone-600 hover:bg-pink-50 transition";
+                }
+            });
+        }
+
+        function closeDayLogPanel() {
+            document.getElementById('day-log-panel').classList.add('hidden');
+        }
+
+        function saveDayLog() {
+            const notesVal = document.getElementById('day-notes-input').value;
+            const isPeriodStartChecked = document.getElementById('log-is-period-start').checked;
+
+            logs[selectedDateStr] = {
+                flow: tempSelectedFlow,
+                symptoms: tempSelectedSymptoms,
+                notes: notesVal
+            };
+
+            if (isPeriodStartChecked) {
+                settings.lastPeriodStart = selectedDateStr;
+                localStorage.setItem('bloom_settings', JSON.stringify(settings));
+            }
+
+            localStorage.setItem('bloom_logs', JSON.stringify(logs));
+            closeDayLogPanel();
+            renderCalendar();
+            renderDashboard();
+            renderInsights();
+            updateRightNowBanner();
+            showToast("Successfully saved log for this day! 💖");
+        }
+
+        // --- Insights Renderer ---
+        function renderInsights() {
+            document.getElementById('insight-avg-cycle').textContent = `${settings.cycleLength} Days`;
+            document.getElementById('insight-avg-period').textContent = `${settings.periodLength} Days`;
+            
+            const totalLoggedDays = Object.keys(logs).filter(k => logs[k].flow !== 'None' || logs[k].symptoms?.length > 0).length;
+            document.getElementById('insight-total-logs').textContent = totalLoggedDays;
+
+            const predList = document.getElementById('predictions-list');
+            predList.innerHTML = '';
+            let lastStart = parseDateString(settings.lastPeriodStart);
+
+            for (let i = 1; i <= 4; i++) {
+                lastStart.setDate(lastStart.getDate() + parseInt(settings.cycleLength));
+                const pDateStr = lastStart.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+                
+                const item = document.createElement('div');
+                item.className = "p-4 rounded-2xl bg-pink-50/50 border border-pink-100 flex justify-between items-center";
+                item.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-xl bg-pink-100 text-rose-500 flex items-center justify-center font-bold text-sm">
+                            #${i}
+                        </div>
+                        <div>
+                            <p class="font-bold text-stone-700 text-sm">Estimated Period Start</p>
+                            <p class="text-xs text-stone-500">Expected duration: ${settings.periodLength} days</p>
+                        </div>
+                    </div>
+                    <span class="px-3 py-1.5 bg-white text-rose-600 rounded-full font-bold text-xs shadow-sm border border-pink-200">${pDateStr}</span>
+                `;
+                predList.appendChild(item);
+            }
+
+            const symCounts = {};
+            Object.values(logs).forEach(log => {
+                if (log.symptoms) {
+                    log.symptoms.forEach(sId => {
+                        symCounts[sId] = (symCounts[sId] || 0) + 1;
+                    });
+                }
+            });
+
+            const symStatsContainer = document.getElementById('symptoms-stats-list');
+            symStatsContainer.innerHTML = '';
+            
+            const sortedSyms = Object.keys(symCounts).sort((a,b) => symCounts[b] - symCounts[a]);
+            if (sortedSyms.length === 0) {
+                symStatsContainer.innerHTML = `<p class="text-xs text-stone-400 italic">No symptoms logged yet. Start logging on the calendar to see frequency insights!</p>`;
+            } else {
+                sortedSyms.forEach(sId => {
+                    const symInfo = SYMPTOM_LIST.find(x => x.id === sId);
+                    if (!symInfo) return;
+                    const count = symCounts[sId];
+
+                    const row = document.createElement('div');
+                    row.className = "flex items-center justify-between text-sm";
+                    row.innerHTML = `
+                        <div class="flex items-center space-x-2">
+                            <span class="text-lg">${symInfo.emoji}</span>
+                            <span class="font-medium text-stone-700">${symInfo.name}</span>
+                        </div>
+                        <span class="px-2.5 py-1 bg-pink-100 text-rose-600 rounded-full text-xs font-bold">${count} times</span>
+                    `;
+                    symStatsContainer.appendChild(row);
+                });
+            }
+        }
+
+        // --- Partner Notes & Care Renderer ---
+        function renderPartnerSection() {
+            const calc = getCycleCalculations();
+            document.getElementById('partner-view-phase').textContent = calc.phaseName;
+            document.getElementById('partner-view-day').textContent = `Day ${calc.currentCycleDay} of ${settings.cycleLength}`;
+            document.getElementById('partner-view-countdown').textContent = `${calc.daysUntilNext} Days remaining`;
+
+            const tipsGrid = document.getElementById('partner-tips-grid');
+            tipsGrid.innerHTML = '';
+            PARTNER_TIPS.forEach(tip => {
+                const card = document.createElement('div');
+                card.className = `glass-card rounded-3xl p-6 shadow-sm border ${tip.color} flex flex-col justify-between`;
+                card.innerHTML = `
+                    <div>
+                        <div class="w-10 h-10 rounded-2xl bg-white shadow-sm flex items-center justify-center mb-4">
+                            <i class="fa-solid ${tip.icon} text-lg"></i>
+                        </div>
+                        <h5 class="font-bold text-stone-700 mb-2">${tip.title}</h5>
+                        <p class="text-xs text-stone-600 leading-relaxed">${tip.desc}</p>
+                    </div>
+                `;
+                tipsGrid.appendChild(card);
+            });
+
+            const wall = document.getElementById('love-notes-wall');
+            wall.innerHTML = '';
+            loveNotes.forEach(note => {
+                const noteCard = document.createElement('div');
+                noteCard.className = "p-5 rounded-2xl bg-gradient-to-br from-pink-50/80 to-rose-50/50 border border-pink-200/60 shadow-sm flex flex-col justify-between relative";
+                noteCard.innerHTML = `
+                    <div class="absolute top-4 right-4 text-rose-300">
+                        <i class="fa-solid fa-heart text-sm"></i>
+                    </div>
+                    <p class="text-sm text-stone-700 italic mb-4 leading-relaxed pr-6">"${note.text}"</p>
+                    <div class="flex justify-between items-center text-xs text-stone-500 pt-3 border-t border-pink-100">
+                        <span class="font-semibold text-rose-500">~ ${note.author}</span>
+                        <span>${note.date}</span>
+                    </div>
+                `;
+                wall.appendChild(noteCard);
+            });
+        }
+
+        // --- Modal Handlers ---
+        function openSettingsModal() {
+            document.getElementById('settings-modal').classList.remove('hidden');
+        }
+        function closeSettingsModal() {
+            document.getElementById('settings-modal').classList.add('hidden');
+        }
+        function saveSettings() {
+            const lastStartVal = document.getElementById('setting-last-start').value;
+            const cycleLenVal = parseInt(document.getElementById('setting-cycle-length').value);
+            const periodLenVal = parseInt(document.getElementById('setting-period-length').value);
+
+            if (lastStartVal) settings.lastPeriodStart = lastStartVal;
+            if (cycleLenVal) settings.cycleLength = cycleLenVal;
+            if (periodLenVal) settings.periodLength = periodLenVal;
+
+            localStorage.setItem('bloom_settings', JSON.stringify(settings));
+            closeSettingsModal();
+            updateRightNowBanner();
+            renderDashboard();
+            renderCalendar();
+            renderInsights();
+            renderPartnerSection();
+            showToast("Settings updated successfully! 🌸");
+        }
+
+        function openAddNoteModal() {
+            document.getElementById('add-note-modal').classList.remove('hidden');
+        }
+        function closeAddNoteModal() {
+            document.getElementById('add-note-modal').classList.add('hidden');
+        }
+        function saveNewNote() {
+            const text = document.getElementById('new-note-text').value;
+            const author = document.getElementById('new-note-author').value;
+
+            if (!text.trim()) {
+                showToast("Please write a message first!");
+                return;
+            }
+
+            loveNotes.unshift({
+                text: text.trim(),
+                author: author.trim() || 'Partner',
+                date: 'Just now'
+            });
+
+            localStorage.setItem('bloom_notes', JSON.stringify(loveNotes));
+            closeAddNoteModal();
+            document.getElementById('new-note-text').value = '';
+            renderPartnerSection();
+            showToast("Sweet note added to the wall! 💕");
+        }
+
+        function openLogTodayModal() {
+            switchTab('calendar');
+            openDayLogPanelForDate(formatDateString(new Date()));
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').textContent = msg;
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            toast.classList.add('opacity-100');
+            setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
