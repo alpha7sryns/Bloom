@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bloom Advanced - Real-Time Synced Cycle & Health Tracker</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        pastel: {
+                            pink: '#ffd1dc',
+                            rose: '#ffb7b2',
+                            peach: '#ffdac1',
+                            lavender: '#e2ece9',
+                            purple: '#dfbff0',
+                            cream: '#fdfbf7',
+                            card: '#ffffff',
+                            text: '#5a4d55',
+                            muted: '#9a8c98'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #fcf8f7;
+            color: #5a4d55;
+            font-family: 'Inter', sans-serif;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #fdfbf7;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #ffb7b2;
+            border-radius: 9999px;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 183, 178, 0.25);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-pink-200 selection:text-pink-900">
+
+    <!-- Top Navigation Bar -->
+    <header class="sticky top-0 z-50 glass-card border-b border-pink-100 px-4 sm:px-8 py-4 flex items-center justify-between shadow-sm">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-pink-400 to-rose-400 flex items-center justify-center text-white shadow-md">
+                <i class="fa-solid fa-spa text-lg"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold bg-gradient-to-r from-pink-500 to-rose-500 bg-clip-text text-transparent">Bloom Advanced</h1>
+                <p class="text-xs text-pastel-muted flex items-center gap-1.5">
+                    <span id="sync-dot" class="w-2 h-2 rounded-full bg-amber-400 inline-block"></span>
+                    <span id="sync-status-text">Connecting to Cloud Sync...</span>
+                </p>
+            </div>
+        </div>
+
+        <!-- Mode Toggle & Navigation -->
+        <div class="flex items-center space-x-2 sm:space-x-4">
+            <div class="bg-pink-50 p-1 rounded-2xl border border-pink-100 flex items-center">
+                <button onclick="setAppMode('gf')" id="btn-mode-gf" class="px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 bg-white text-rose-500 shadow-sm">
+                    <i class="fa-solid fa-venus mr-1"></i> Her View
+                </button>
+                <button onclick="setAppMode('partner')" id="btn-mode-partner" class="px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 text-stone-600 hover:text-rose-500">
+                    <i class="fa-solid fa-mars mr-1"></i> Partner View
+                </button>
+            </div>
+
+            <button onclick="openSyncModal()" class="w-10 h-10 rounded-full bg-white border border-pink-200 flex items-center justify-center text-rose-500 hover:bg-pink-50 transition shadow-sm" title="Sync & Room Settings">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+            </button>
+            <button onclick="openSettingsModal()" class="w-10 h-10 rounded-full bg-white border border-pink-200 flex items-center justify-center text-rose-400 hover:bg-pink-50 transition shadow-sm" title="Cycle Settings">
+                <i class="fa-solid fa-gear"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 pb-20">
+
+        <!-- ================= HER VIEW DASHBOARD & TABS ================= -->
+        <div id="view-her" class="space-y-6">
+            <!-- Sub Navigation Tabs for Her View -->
+            <div class="flex space-x-2 overflow-x-auto pb-2">
+                <button onclick="switchHerTab('dashboard')" id="hertab-btn-dashboard" class="px-5 py-2.5 rounded-2xl text-sm font-bold bg-white text-rose-500 shadow-sm border border-pink-200 transition">Dashboard</button>
+                <button onclick="switchHerTab('calendar')" id="hertab-btn-calendar" class="px-5 py-2.5 rounded-2xl text-sm font-bold bg-white/60 text-stone-600 hover:bg-white border border-pink-100 transition">Calendar & Log</button>
+                <button onclick="switchHerTab('insights')" id="hertab-btn-insights" class="px-5 py-2.5 rounded-2xl text-sm font-bold bg-white/60 text-stone-600 hover:bg-white border border-pink-100 transition">Hormones & Insights</button>
+                <button onclick="switchHerTab('notes')" id="hertab-btn-notes" class="px-5 py-2.5 rounded-2xl text-sm font-bold bg-white/60 text-stone-600 hover:bg-white border border-pink-100 transition">Love Notes & Care</button>
+            </div>
+
+            <!-- TAB 1: DASHBOARD -->
+            <div id="hertab-dashboard" class="space-y-6">
+                <!-- Greeting Banner -->
+                <div class="bg-gradient-to-r from-pink-100 via-rose-100 to-peach-100 rounded-3xl p-6 sm:p-8 shadow-sm border border-pink-200/50 flex flex-col md:flex-row justify-between items-center relative overflow-hidden">
+                    <div class="absolute -right-10 -bottom-10 opacity-20 pointer-events-none">
+                        <i class="fa-solid fa-spa text-9xl text-rose-300"></i>
+                    </div>
+                    <div class="space-y-2 z-10 text-center md:text-left mb-4 md:mb-0">
+                        <span class="inline-block px-3 py-1 bg-white/70 backdrop-blur text-rose-600 rounded-full text-xs font-semibold tracking-wide uppercase shadow-sm mb-1">
+                            <i class="fa-solid fa-cloud-arrow-up text-xs mr-1 text-emerald-500"></i> Cloud Synced in Room: <span id="display-room-code" class="font-mono font-bold">BLOOM-2026</span>
+                        </span>
+                        <h2 class="text-2xl sm:text-3xl font-bold text-stone-700">Hello, Beautiful 🌸</h2>
+                        <p class="text-sm sm:text-base text-stone-600">Your partner is instantly connected to your latest updates.</p>
+                    </div>
+                    <div class="z-10 flex gap-3">
+                        <button onclick="openLogTodayModal()" class="px-5 py-3 bg-white text-rose-500 font-semibold rounded-2xl shadow-md hover:bg-rose-500 hover:text-white transition-all duration-300 flex items-center space-x-2 border border-pink-200">
+                            <i class="fa-solid fa-plus-circle"></i>
+                            <span>Log Today</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Overview Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="md:col-span-2 glass-card rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col justify-between border border-pink-100">
+                        <div class="flex justify-between items-start mb-6">
+                            <div>
+                                <span class="text-xs uppercase tracking-wider text-rose-400 font-semibold">Current Status</span>
+                                <h3 id="gf-current-phase" class="text-xl font-bold text-stone-700 mt-1">Follicular Phase</h3>
+                            </div>
+                            <div id="gf-cycle-day-badge" class="px-3.5 py-1.5 bg-pink-100 text-rose-600 rounded-full font-bold text-sm shadow-inner">
+                                Day 5 of 28
+                            </div>
+                        </div>
+
+                        <!-- Progress Bar -->
+                        <div class="space-y-3 my-4">
+                            <div class="flex justify-between text-xs text-stone-500 font-medium">
+                                <span>Period Start</span>
+                                <span>Ovulation (~Day 14)</span>
+                                <span>Next Period (~Day 28)</span>
+                            </div>
+                            <div class="w-full bg-pink-50 h-4 rounded-full overflow-hidden p-0.5 border border-pink-100 shadow-inner">
+                                <div id="gf-progress-bar" class="bg-gradient-to-r from-pink-400 to-rose-400 h-full rounded-full transition-all duration-1000" style="width: 20%;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Countdown Cards -->
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4 pt-4 border-t border-pink-50">
+                            <div class="bg-pink-50/50 p-4 rounded-2xl border border-pink-100/60">
+                                <p class="text-xs text-stone-500 font-medium">Next Period In</p>
+                                <p id="gf-stat-days-until" class="text-2xl font-extrabold text-rose-500 mt-1">23 days</p>
+                            </div>
+                            <div class="bg-pink-50/50 p-4 rounded-2xl border border-pink-100/60">
+                                <p class="text-xs text-stone-500 font-medium">Fertile Window</p>
+                                <p id="gf-stat-fertile" class="text-sm font-bold text-stone-700 mt-1">Starts in 9 days</p>
+                            </div>
+                            <div class="col-span-2 sm:col-span-1 bg-pink-50/50 p-4 rounded-2xl border border-pink-100/60 flex flex-col justify-center">
+                                <p class="text-xs text-stone-500 font-medium">Conception Chance</p>
+                                <p id="gf-stat-conception" class="text-sm font-bold text-rose-500 mt-1">Low</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Companion Note Prompt -->
+                    <div class="glass-card rounded-3xl p-6 shadow-sm flex flex-col justify-between border border-pink-100 bg-gradient-to-b from-white to-pink-50/30">
+                        <div>
+                            <div class="flex items-center space-x-2 mb-3">
+                                <div class="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center text-rose-500">
+                                    <i class="fa-solid fa-heart text-sm"></i>
+                                </div>
+                                <h4 class="font-bold text-stone-700 text-sm">Latest Partner Note</h4>
+                            </div>
+                            <p id="gf-latest-note-preview" class="text-stone-600 text-sm italic leading-relaxed">
+                                "You are doing amazing today, gorgeous! ❤️"
+                            </p>
+                        </div>
+                        <div class="mt-6 pt-4 border-t border-pink-100 flex justify-between items-center">
+                            <span class="text-xs text-rose-400 font-medium">Synced with Partner</span>
+                            <button onclick="switchHerTab('notes')" class="text-xs bg-rose-500 text-white px-3 py-1.5 rounded-xl font-medium hover:bg-rose-600 transition shadow-sm">View All</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Check-in -->
+                <div class="glass-card rounded-3xl p-6 shadow-sm border border-pink-100">
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <h4 class="font-bold text-stone-700">Quick Daily Check-in</h4>
+                            <p class="text-xs text-stone-500">Tap symptoms to sync instantly to your partner's view.</p>
+                        </div>
+                        <span class="text-xs bg-pink-100 text-rose-600 font-semibold px-3 py-1 rounded-full">Today</span>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-3" id="quick-symptoms-grid"></div>
+                </div>
+            </div>
+
+            <!-- TAB 2: CALENDAR -->
+            <div id="hertab-calendar" class="hidden space-y-6">
+                <div class="glass-card rounded-3xl p-6 sm:p-8 shadow-sm border border-pink-100">
+                    <div class="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
+                        <div class="flex items-center space-x-3">
+                            <h3 id="cal-month-year" class="text-2xl font-bold text-stone-700">October 2026</h3>
+                            <div class="flex space-x-1 bg-pink-50 p-1 rounded-xl border border-pink-100">
+                                <button onclick="changeMonth(-1)" class="w-8 h-8 rounded-lg bg-white text-stone-600 hover:bg-rose-500 hover:text-white transition shadow-sm flex items-center justify-center">
+                                    <i class="fa-solid fa-chevron-left text-xs"></i>
+                                </button>
+                                <button onclick="changeMonth(1)" class="w-8 h-8 rounded-lg bg-white text-stone-600 hover:bg-rose-500 hover:text-white transition shadow-sm flex items-center justify-center">
+                                    <i class="fa-solid fa-chevron-right text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3 text-xs text-stone-600">
+                            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-rose-400"></span> Period</span>
+                            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-pink-200"></span> Predicted</span>
+                            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-200"></span> Ovulation</span>
+                            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-purple-200"></span> Fertile</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-7 gap-1 sm:gap-2 text-center">
+                        <div class="text-xs font-bold text-stone-400 py-2">Sun</div>
+                        <div class="text-xs font-bold text-stone-400 py-2">Mon</div>
+                        <div class="text-xs font-bold text-stone-400 py-2">Tue</div>
+                        <div class="text-xs font-bold text-stone-400 py-2">Wed</div>
+                        <div class="text-xs font-bold text-stone-400 py-2">Thu</div>
+                        <div class="text-xs font-bold text-stone-400 py-2">Fri</div>
+                        <div class="text-xs font-bold text-stone-400 py-2">Sat</div>
+                    </div>
+                    <div id="calendar-days-grid" class="grid grid-cols-7 gap-1 sm:gap-2 mt-2"></div>
+                </div>
+
+                <!-- Day Log Panel -->
+                <div id="day-log-panel" class="glass-card rounded-3xl p-6 sm:p-8 shadow-sm border border-pink-100 hidden">
+                    <div class="flex justify-between items-center mb-6 border-b border-pink-100 pb-4">
+                        <div>
+                            <span class="text-xs font-semibold text-rose-500 uppercase tracking-wider">Log & Details for</span>
+                            <h4 id="selected-date-title" class="text-xl font-bold text-stone-700">October 24, 2026</h4>
+                        </div>
+                        <button onclick="closeDayLogPanel()" class="text-stone-400 hover:text-stone-700 text-lg">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-4">
+                            <label class="block text-sm font-semibold text-stone-700">Period Flow Level</label>
+                            <div class="grid grid-cols-5 gap-2" id="flow-options">
+                                <button onclick="selectFlow('None')" data-flow="None" class="flow-btn py-2.5 rounded-xl border border-pink-200 text-xs font-medium text-stone-600 hover:bg-pink-50 transition">None</button>
+                                <button onclick="selectFlow('Spotting')" data-flow="Spotting" class="flow-btn py-2.5 rounded-xl border border-pink-200 text-xs font-medium text-stone-600 hover:bg-pink-50 transition">Spotting</button>
+                                <button onclick="selectFlow('Light')" data-flow="Light" class="flow-btn py-2.5 rounded-xl border border-pink-200 text-xs font-medium text-stone-600 hover:bg-pink-50 transition">Light</button>
+                                <button onclick="selectFlow('Medium')" data-flow="Medium" class="flow-btn py-2.5 rounded-xl border border-pink-200 text-xs font-medium text-stone-600 hover:bg-pink-50 transition">Medium</button>
+                                <button onclick="selectFlow('Heavy')" data-flow="Heavy" class="flow-btn py-2.5 rounded-xl border border-pink-200 text-xs font-medium text-stone-600 hover:bg-pink-50 transition">Heavy</button>
+                            </div>
+                            <div class="pt-2">
+                                <label class="flex items-center space-x-3 cursor-pointer">
+                                    <input type="checkbox" id="log-is-period-start" class="w-5 h-5 text-rose-500 rounded border-pink-300 focus:ring-rose-400">
+                                    <span class="text-sm font-medium text-stone-700">Mark as Period Start Day (Updates cycle calculations)</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <label class="block text-sm font-semibold text-stone-700">Symptoms & Moods</label>
+                            <div class="flex flex-wrap gap-2" id="day-symptom-tags"></div>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 pt-4 border-t border-pink-100">
+                        <label class="block text-sm font-semibold text-stone-700 mb-2">Personal Notes & Reflections</label>
+                        <textarea id="day-notes-input" rows="3" placeholder="How are you feeling today..." class="w-full p-4 rounded-2xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-rose-300 text-sm bg-white/70"></textarea>
+                    </div>
+
+                    <div class="mt-6 flex justify-end space-x-3">
+                        <button onclick="closeDayLogPanel()" class="px-5 py-2.5 rounded-xl border border-pink-200 text-stone-600 font-medium hover:bg-pink-50 transition text-sm">Cancel</button>
+                        <button onclick="saveDayLog()" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-pink-400 to-rose-400 text-white font-semibold shadow-md hover:opacity-95 transition text-sm">Save & Sync</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: INSIGHTS & HORMONES -->
+            <div id="hertab-insights" class="hidden space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="glass-card rounded-3xl p-6 shadow-sm border border-pink-100 text-center">
+                        <div class="w-12 h-12 rounded-2xl bg-pink-100 text-rose-500 flex items-center justify-center mx-auto mb-3 text-xl">
+                            <i class="fa-solid fa-arrows-spin"></i>
+                        </div>
+                        <p class="text-xs text-stone-500 font-medium">Average Cycle Length</p>
+                        <h3 id="insight-avg-cycle" class="text-3xl font-extrabold text-stone-700 mt-1">28 Days</h3>
+                    </div>
+                    <div class="glass-card rounded-3xl p-6 shadow-sm border border-pink-100 text-center">
+                        <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-500 flex items-center justify-center mx-auto mb-3 text-xl">
+                            <i class="fa-solid fa-droplet"></i>
+                        </div>
+                        <p class="text-xs text-stone-500 font-medium">Average Period Duration</p>
+                        <h3 id="insight-avg-period" class="text-3xl font-extrabold text-stone-700 mt-1">5 Days</h3>
+                    </div>
+                    <div class="glass-card rounded-3xl p-6 shadow-sm border border-pink-100 text-center">
+                        <div class="w-12 h-12 rounded-2xl bg-amber-100 text-rose-500 flex items-center justify-center mx-auto mb-3 text-xl">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                        </div>
+                        <p class="text-xs text-stone-500 font-medium">Cloud Sync Status</p>
+                        <h3 class="text-xl font-bold text-emerald-600 mt-2">Active & Real-Time</h3>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-3xl p-6 sm:p-8 shadow-sm border border-pink-100">
+                    <h3 class="text-xl font-bold text-stone-700 mb-4">Upcoming Cycle Predictions</h3>
+                    <div class="space-y-3" id="predictions-list"></div>
+                </div>
+            </div>
+
+            <!-- TAB 4: LOVE NOTES & CARE -->
+            <div id="hertab-notes" class="hidden space-y-6">
+                <div class="bg-gradient-to-r from-rose-100 via-pink-100 to-purple-100 rounded-3xl p-6 sm:p-8 shadow-sm border border-pink-200/50 flex flex-col md:flex-row justify-between items-center">
+                    <div class="space-y-2 mb-4 md:mb-0">
+                        <span class="inline-block px-3 py-1 bg-white/70 backdrop-blur text-rose-600 rounded-full text-xs font-semibold tracking-wide uppercase shadow-sm mb-1">
+                            <i class="fa-solid fa-heart mr-1"></i> Partner Support
+                        </span>
+                        <h3 class="text-2xl font-bold text-stone-700">Love Notes & Affirmations Wall</h3>
+                        <p class="text-sm text-stone-600">Sweet notes synced instantly between you and your partner.</p>
+                    </div>
+                    <button onclick="openAddNoteModal()" class="px-5 py-3 bg-white text-rose-500 font-semibold rounded-2xl shadow-md hover:bg-rose-500 hover:text-white transition-all duration-300 flex items-center space-x-2 border border-pink-200">
+                        <i class="fa-solid fa-pen-nib"></i>
+                        <span>Leave a Note</span>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4" id="love-notes-wall"></div>
+            </div>
+        </div>
+
+        <!-- ================= PARTNER VIEW DASHBOARD ================= -->
+        <div id="view-partner" class="hidden space-y-6">
+            <!-- Partner Header Banner -->
+            <div class="bg-gradient-to-r from-rose-100 via-pink-100 to-purple-100 rounded-3xl p-6 sm:p-8 shadow-sm border border-pink-200/50 flex flex-col md:flex-row justify-between items-center relative">
+                <div class="space-y-2 mb-4 md:mb-0">
+                    <span class="inline-block px-3 py-1 bg-white/70 backdrop-blur text-rose-600 rounded-full text-xs font-semibold tracking-wide uppercase shadow-sm mb-1">
+                        <i class="fa-solid fa-mars mr-1"></i> Partner Dashboard (Husband / Partner Mode)
+                    </span>
+                    <h2 class="text-2xl sm:text-3xl font-bold text-stone-700">Supporting Her with Love 💖</h2>
+                    <p class="text-sm text-stone-600">Synced live with Room: <span id="partner-room-code" class="font-mono font-bold">BLOOM-2026</span></p>
+                </div>
+                <button onclick="openAddNoteModal()" class="px-5 py-3 bg-rose-500 text-white font-semibold rounded-2xl shadow-md hover:bg-rose-600 transition flex items-center space-x-2">
+                    <i class="fa-solid fa-heart"></i>
+                    <span>Send Love Note</span>
+                </button>
+            </div>
+
+            <!-- Partner Live Status Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Status Card -->
+                <div class="md:col-span-2 glass-card rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col justify-between border border-pink-100">
+                    <div class="flex justify-between items-start mb-6">
+                        <div>
+                            <span class="text-xs uppercase tracking-wider text-rose-400 font-semibold">Her Current Phase</span>
+                            <h3 id="partner-phase-title" class="text-2xl font-bold text-stone-700 mt-1">Follicular Phase</h3>
+                        </div>
+                        <div id="partner-day-badge" class="px-4 py-1.5 bg-rose-500 text-white rounded-full font-bold text-sm shadow-md">
+                            Day 5 of 28
+                        </div>
+                    </div>
+
+                    <!-- Countdown & Details -->
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 my-4">
+                        <div class="bg-pink-50 p-4 rounded-2xl border border-pink-100">
+                            <p class="text-xs text-stone-500 font-medium">Next Period In</p>
+                            <p id="partner-countdown" class="text-2xl font-extrabold text-rose-500 mt-1">23 days</p>
+                        </div>
+                        <div class="bg-pink-50 p-4 rounded-2xl border border-pink-100">
+                            <p class="text-xs text-stone-500 font-medium">Fertile Window</p>
+                            <p id="partner-fertile" class="text-sm font-bold text-stone-700 mt-1">Starts in 9 days</p>
+                        </div>
+                        <div class="col-span-2 sm:col-span-1 bg-pink-50 p-4 rounded-2xl border border-pink-100 flex flex-col justify-center">
+                            <p class="text-xs text-stone-500 font-medium">Today's Energy</p>
+                            <p id="partner-energy" class="text-sm font-bold text-rose-500 mt-1">Balanced 🌱</p>
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t border-pink-100 flex items-center justify-between text-xs text-stone-500">
+                        <span>Last Synced: <span id="partner-last-sync" class="font-semibold text-stone-700">Just now</span></span>
+                        <span class="text-emerald-600 font-bold flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> Live Cloud Sync Active</span>
+                    </div>
+                </div>
+
+                <!-- Partner Daily Care Action Card -->
+                <div class="glass-card rounded-3xl p-6 shadow-sm flex flex-col justify-between border border-pink-100 bg-gradient-to-b from-white to-pink-50/30">
+                    <div>
+                        <div class="flex items-center space-x-2 mb-3">
+                            <div class="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center text-rose-500">
+                                <i class="fa-solid fa-lightbulb text-sm"></i>
+                            </div>
+                            <h4 class="font-bold text-stone-700 text-sm">Recommended Care Tip Today</h4>
+                        </div>
+                        <p id="partner-care-tip" class="text-stone-600 text-sm italic leading-relaxed">
+                            "Make sure she has her favorite herbal tea and a cozy warm blanket tonight."
+                        </p>
+                    </div>
+                    <div class="mt-6 pt-4 border-t border-pink-100">
+                        <p class="text-xs text-rose-400 font-medium text-center">You're doing great! Keep showing love. ❤️</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Partner Care Action Checklist & Guide -->
+            <div class="glass-card rounded-3xl p-6 sm:p-8 shadow-sm border border-pink-100">
+                <h3 class="text-xl font-bold text-stone-700 mb-2">Partner Support Checklist</h3>
+                <p class="text-xs text-stone-500 mb-6">Actionable ways to care for her based on her current cycle phase.</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4" id="partner-checklist-grid">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+
+            <!-- Love Notes Wall in Partner View -->
+            <div class="glass-card rounded-3xl p-6 sm:p-8 shadow-sm border border-pink-100">
+                <h3 class="text-xl font-bold text-stone-700 mb-4">Recent Love Notes</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4" id="partner-notes-wall"></div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer with exact requested credit -->
+    <footer class="text-center py-6 text-xs text-stone-500 border-t border-pink-100/60 bg-white/50">
+        <p class="font-semibold text-rose-500">Designed by SHREYANSH RAI</p>
+        <p class="mt-1 text-stone-400">Bloom Advanced • Real-time cloud synced cycle & health tracking</p>
+    </footer>
+
+    <!-- ================= MODALS ================= -->
+
+    <!-- Cloud Sync Modal -->
+    <div id="sync-modal" class="fixed inset-0 z-50 bg-stone-900/40 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="glass-card rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-xl border border-pink-200 bg-white">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-stone-700">Real-Time Cloud Sync Hub</h3>
+                <button onclick="closeSyncModal()" class="text-stone-400 hover:text-stone-700"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-4">
+                <p class="text-xs text-stone-600 leading-relaxed">
+                    Share this exact <b>Room Code</b> with your partner so whenever she updates her period dates or symptoms, your partner view updates instantly in real-time!
+                </p>
+                <div>
+                    <label class="block text-xs font-semibold text-stone-600 mb-1">Shared Room Code</label>
+                    <div class="flex space-x-2">
+                        <input type="text" id="modal-room-input" class="w-full p-3 rounded-xl border border-pink-200 font-mono text-sm uppercase font-bold focus:outline-none focus:ring-2 focus:ring-rose-300" value="BLOOM-2026">
+                        <button onclick="saveRoomCode()" class="px-5 py-3 bg-rose-500 text-white rounded-xl font-semibold text-sm hover:bg-rose-600 transition">Connect</button>
+                    </div>
+                </div>
+                <div class="p-4 rounded-2xl bg-pink-50 border border-pink-100 text-xs text-stone-600 space-y-2">
+                    <p class="font-bold text-rose-600"><i class="fa-solid fa-circle-info mr-1"></i> How Live Sync Works:</p>
+                    <p>1. Both devices enter the same room code (e.g., <code class="bg-white px-1 py-0.5 rounded font-bold">BLOOM-2026</code>).</p>
+                    <p>2. Data saves securely to the cloud. When she logs symptoms, you see them immediately!</p>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button onclick="closeSyncModal()" class="px-5 py-2.5 rounded-xl bg-stone-100 text-stone-700 text-sm font-medium hover:bg-stone-200">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cycle Settings Modal -->
+    <div id="settings-modal" class="fixed inset-0 z-50 bg-stone-900/40 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="glass-card rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-xl border border-pink-200 bg-white">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-stone-700">Cycle Settings</h3>
+                <button onclick="closeSettingsModal()" class="text-stone-400 hover:text-stone-700"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-stone-600 mb-1">Last Period Start Date</label>
+                    <input type="date" id="setting-last-start" class="w-full p-3 rounded-xl border border-pink-200 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-stone-600 mb-1">Average Cycle Length (Days)</label>
+                    <input type="number" id="setting-cycle-length" min="21" max="45" class="w-full p-3 rounded-xl border border-pink-200 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300" value="28">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-stone-600 mb-1">Average Period Duration (Days)</label>
+                    <input type="number" id="setting-period-length" min="2" max="10" class="w-full p-3 rounded-xl border border-pink-200 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300" value="5">
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end space-x-3">
+                <button onclick="closeSettingsModal()" class="px-4 py-2.5 rounded-xl border border-pink-200 text-stone-600 text-sm font-medium hover:bg-pink-50">Cancel</button>
+                <button onclick="saveSettings()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-pink-400 to-rose-400 text-white text-sm font-semibold shadow-md hover:opacity-95">Save & Sync</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Love Note Modal -->
+    <div id="add-note-modal" class="fixed inset-0 z-50 bg-stone-900/40 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="glass-card rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-xl border border-pink-200 bg-white">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-stone-700">Send Love Note & Affirmation</h3>
+                <button onclick="closeAddNoteModal()" class="text-stone-400 hover:text-stone-700"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-stone-600 mb-1">Your Message</label>
+                    <textarea id="new-note-text" rows="4" placeholder="e.g., You're doing amazing today, gorgeous! ❤️" class="w-full p-3 rounded-xl border border-pink-200 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-stone-600 mb-1">From</label>
+                    <input type="text" id="new-note-author" placeholder="e.g., Your Loving Partner" class="w-full p-3 rounded-xl border border-pink-200 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300" value="Her Partner">
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end space-x-3">
+                <button onclick="closeAddNoteModal()" class="px-4 py-2.5 rounded-xl border border-pink-200 text-stone-600 text-sm font-medium hover:bg-pink-50">Cancel</button>
+                <button onclick="saveNewNote()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-pink-400 to-rose-400 text-white text-sm font-semibold shadow-md hover:opacity-95">Send Note</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 bg-stone-900 text-white px-5 py-3 rounded-2xl shadow-xl text-sm font-medium opacity-0 pointer-events-none transition-all duration-300 flex items-center space-x-2">
+        <i class="fa-solid fa-circle-check text-rose-400"></i>
+        <span id="toast-msg">Cloud synced successfully!</span>
+    </div>
+
+    <!-- ================= FIREBASE & APP LOGIC ================= -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global Firebase handles
+        let db = null;
+        let auth = null;
+        let unsubscribe = null;
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'bloom-advanced-app-2026';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "",
+            authDomain: "",
+            projectId: "",
+            storageBucket: "",
+            messagingSenderId: "",
+            appId: ""
+        };
+
+        const DEFAULT_SETTINGS = {
+            lastPeriodStart: formatDateString(new Date(Date.now() - 5 * 86400000)),
+            cycleLength: 28,
+            periodLength: 5
+        };
+
+        const SYMPTOM_LIST = [
+            { id: 'cramps', name: 'Cramps', icon: 'fa-bolt', emoji: '⚡' },
+            { id: 'headache', name: 'Headache', icon: 'fa-head-side-pain', emoji: '🤕' },
+            { id: 'fatigue', name: 'Fatigue', icon: 'fa-battery-quarter', emoji: '🔋' },
+            { id: 'mood', name: 'Mood Swings', icon: 'fa-face-rolling-eyes', emoji: '🎭' },
+            { id: 'acne', name: 'Skin Breakout', icon: 'fa-face-smile', emoji: '🌱' },
+            { id: 'bloating', name: 'Bloating', icon: 'fa-cookie', emoji: '🍪' },
+            { id: 'cravings', name: 'Cravings', icon: 'fa-burger', emoji: '🍫' },
+            { id: 'happy', name: 'Happy', icon: 'fa-face-smile-beam', emoji: '✨' }
+        ];
+
+        const PARTNER_CHECKLIST = [
+            { title: "Bring Comfort Snacks 🍫", desc: "Keep her favorite dark chocolate or warm treats handy.", icon: "fa-cookie-bite" },
+            { title: "Gentle Lower Back Massages 💆‍♀️", desc: "Help ease cramps with a gentle, soothing back rub.", icon: "fa-hands-holding" },
+            { title: "Cozy Movie Night 🍿", desc: "Set up her favorite comfort movie with warm tea and blankets.", icon: "fa-film" },
+            { title: "Patience & Extra Warm Hugs 🤗", desc: "Emotions can shift; offer reassurance, patience, and warmth.", icon: "fa-heart" },
+            { title: "Take Over Household Chores 🧹", desc: "Take care of cooking or cleaning so she can rest fully.", icon: "fa-broom" },
+            { title: "Sweet Affirmations ✨", desc: "Remind her how wonderful and loved she is every single day.", icon: "fa-wand-magic-sparkles" }
+        ];
+
+        let currentRoomCode = localStorage.getItem('bloom_room_code') || 'BLOOM-2026';
+        let currentMode = 'gf'; // 'gf' or 'partner'
+        let currentHerTab = 'dashboard';
+        
+        let appData = {
+            settings: DEFAULT_SETTINGS,
+            logs: {},
+            notes: [
+                { text: "You are glowing today, even on cozy rest days! ❤️", author: "Her Partner", date: "Today" },
+                { text: "Got your favorite raspberry tea ready for tonight!", author: "Her Partner", date: "Yesterday" }
+            ]
+        };
+
+        let calendarYear = new Date().getFullYear();
+        let calendarMonth = new Date().getMonth();
+        let selectedDateStr = formatDateString(new Date());
+        let tempSelectedFlow = 'None';
+        let tempSelectedSymptoms = [];
+
+        window.onload = async function() {
+            document.getElementById('modal-room-input').value = currentRoomCode;
+            document.getElementById('display-room-code').textContent = currentRoomCode;
+            document.getElementById('partner-room-code').textContent = currentRoomCode;
+
+            // Initialize Firebase if config exists
+            try {
+                if (firebaseConfig && firebaseConfig.projectId) {
+                    const app = initializeApp(firebaseConfig);
+                    auth = getAuth(app);
+                    db = getFirestore(app);
+                    await signInAnonymously(auth);
+                    document.getElementById('sync-dot').className = "w-2 h-2 rounded-full bg-emerald-400 inline-block";
+                    document.getElementById('sync-status-text').textContent = "Cloud Sync Connected Live";
+                    subscribeToRoom();
+                } else {
+                    document.getElementById('sync-dot').className = "w-2 h-2 rounded-full bg-amber-400 inline-block";
+                    document.getElementById('sync-status-text').textContent = "Local Simulation Mode";
+                    loadLocalStorageFallback();
+                }
+            } catch (e) {
+                console.warn("Firebase init note:", e);
+                loadLocalStorageFallback();
+            }
+
+            initQuickSymptoms();
+            renderAll();
+        };
+
+        function formatDateString(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+        function parseDateString(str) {
+            const parts = str.split('-');
+            return new Date(parts[0], parts[1] - 1, parts[2]);
+        }
+
+        // --- Firebase Sync Subscription ---
+        function subscribeToRoom() {
+            if (!db) return;
+            if (unsubscribe) unsubscribe();
+
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', `room_${currentRoomCode.toLowerCase()}`);
+            unsubscribe = onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (data && data.payload) {
+                        appData = JSON.parse(data.payload);
+                        renderAll();
+                        showToast("Synced new updates from cloud! ✨");
+                    }
+                } else {
+                    // Create initial room doc
+                    saveDataToCloud();
+                }
+            }, (error) => {
+                console.error("Sync error:", error);
+            });
+        }
+
+        async function saveDataToCloud() {
+            // Also save to localStorage fallback
+            localStorage.setItem(`bloom_room_${currentRoomCode}`, JSON.stringify(appData));
+
+            if (!db) return;
+            try {
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', `room_${currentRoomCode.toLowerCase()}`);
+                await setDoc(docRef, {
+                    payload: JSON.stringify(appData),
+                    updatedAt: new Date().toISOString()
+                });
+            } catch (e) {
+                console.error("Error saving to cloud:", e);
+            }
+        }
+
+        function loadLocalStorageFallback() {
+            const local = localStorage.getItem(`bloom_room_${currentRoomCode}`);
+            if (local) {
+                try {
+                    appData = JSON.parse(local);
+                } catch(e) {}
+            }
+            renderAll();
+        }
+
+        // --- Mode & Tab Switching ---
+        window.setAppMode = function(mode) {
+            currentMode = mode;
+            const btnGf = document.getElementById('btn-mode-gf');
+            const btnPartner = document.getElementById('btn-mode-partner');
+            const viewHer = document.getElementById('view-her');
+            const viewPartner = document.getElementById('view-partner');
+
+            if (mode === 'gf') {
+                btnGf.className = "px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 bg-white text-rose-500 shadow-sm";
+                btnPartner.className = "px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 text-stone-600 hover:text-rose-500";
+                viewHer.classList.remove('hidden');
+                viewPartner.classList.add('hidden');
+            } else {
+                btnPartner.className = "px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 bg-white text-rose-500 shadow-sm";
+                btnGf.className = "px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 text-stone-600 hover:text-rose-500";
+                viewPartner.classList.remove('hidden');
+                viewHer.classList.add('hidden');
+            }
+            renderAll();
+        };
+
+        window.switchHerTab = function(tab) {
+            currentHerTab = tab;
+            const tabs = ['dashboard', 'calendar', 'insights', 'notes'];
+            tabs.forEach(t => {
+                const sec = document.getElementById(`hertab-${t}`);
+                const btn = document.getElementById(`hertab-btn-${t}`);
+                if (t === tab) {
+                    sec.classList.remove('hidden');
+                    btn.className = "px-5 py-2.5 rounded-2xl text-sm font-bold bg-white text-rose-500 shadow-sm border border-pink-200 transition";
+                } else {
+                    sec.classList.add('hidden');
+                    btn.className = "px-5 py-2.5 rounded-2xl text-sm font-bold bg-white/60 text-stone-600 hover:bg-white border border-pink-100 transition";
+                }
+            });
+        };
+
+        // --- Calculations ---
+        function getCycleCalculations() {
+            const settings = appData.settings || DEFAULT_SETTINGS;
+            const lastStart = parseDateString(settings.lastPeriodStart);
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            lastStart.setHours(0,0,0,0);
+
+            const diffTime = today - lastStart;
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            
+            let currentCycleDay = (diffDays % settings.cycleLength) + 1;
+            if (currentCycleDay < 1) currentCycleDay = 1;
+
+            const daysUntilNext = settings.cycleLength - currentCycleDay >= 0 ? settings.cycleLength - currentCycleDay : 0;
+            
+            let phaseName = "Follicular Phase";
+            if (currentCycleDay <= settings.periodLength) {
+                phaseName = "Menstrual Phase (Period)";
+            } else if (currentCycleDay >= 12 && currentCycleDay <= 16) {
+                phaseName = "Ovulation Phase ✨";
+            } else if (currentCycleDay > 16) {
+                phaseName = "Luteal Phase";
+            } else {
+                phaseName = "Follicular Phase 🌱";
+            }
+
+            return { currentCycleDay, daysUntilNext, phaseName, lastStart };
+        }
+
+        // --- Render All UI ---
+        function renderAll() {
+            const calc = getCycleCalculations();
+            const settings = appData.settings || DEFAULT_SETTINGS;
+
+            // Her View Dashboard
+            document.getElementById('gf-current-phase').textContent = calc.phaseName;
+            document.getElementById('gf-cycle-day-badge').textContent = `Day ${calc.currentCycleDay} of ${settings.cycleLength}`;
+            const percent = Math.min(100, Math.max(5, (calc.currentCycleDay / settings.cycleLength) * 100));
+            document.getElementById('gf-progress-bar').style.width = `${percent}%`;
+            document.getElementById('gf-stat-days-until').textContent = `${calc.daysUntilNext} days`;
+            
+            let fertileText = calc.currentCycleDay >= 11 && calc.currentCycleDay <= 16 ? "Happening Now 🔥" : `Starts in ${Math.max(0, 11 - calc.currentCycleDay)} days`;
+            document.getElementById('gf-stat-fertile').textContent = fertileText;
+            document.getElementById('gf-stat-conception').textContent = calc.currentCycleDay >= 11 && calc.currentCycleDay <= 16 ? "High" : "Low";
+
+            // Latest note preview
+            if (appData.notes && appData.notes.length > 0) {
+                document.getElementById('gf-latest-note-preview').textContent = `"${appData.notes[0].text}"`;
+            }
+
+            // Partner View Dashboard
+            document.getElementById('partner-phase-title').textContent = calc.phaseName;
+            document.getElementById('partner-day-badge').textContent = `Day ${calc.currentCycleDay} of ${settings.cycleLength}`;
+            document.getElementById('partner-countdown').textContent = `${calc.daysUntilNext} days`;
+            document.getElementById('partner-fertile').textContent = fertileText;
+            document.getElementById('partner-energy').textContent = calc.currentCycleDay <= settings.periodLength ? "Rest & Gentle Care 🌙" : "High Energy ✨";
+
+            renderCalendarGrid();
+            renderInsights();
+            renderNotesWalls();
+            renderPartnerChecklist();
+            initQuickSymptoms();
+
+            // Settings modal inputs sync
+            document.getElementById('setting-last-start').value = settings.lastPeriodStart;
+            document.getElementById('setting-cycle-length').value = settings.cycleLength;
+            document.getElementById('setting-period-length').value = settings.periodLength;
+        }
+
+        // --- Quick Check-in ---
+        function initQuickSymptoms() {
+            const container = document.getElementById('quick-symptoms-grid');
+            if (!container) return;
+            container.innerHTML = '';
+            
+            const todayStr = formatDateString(new Date());
+            const todayLog = (appData.logs && appData.logs[todayStr]) || { symptoms: [] };
+
+            SYMPTOM_LIST.forEach(sym => {
+                const isSelected = todayLog.symptoms && todayLog.symptoms.includes(sym.id);
+                const btn = document.createElement('button');
+                btn.className = `p-3 rounded-2xl border flex flex-col items-center justify-center transition-all duration-200 text-xs font-medium ${
+                    isSelected ? 'bg-rose-500 text-white border-rose-500 shadow-sm' : 'bg-white/80 border-pink-200 text-stone-600 hover:bg-pink-50'
+                }`;
+                btn.innerHTML = `<span class="text-lg mb-1">${sym.emoji}</span><span>${sym.name}</span>`;
+                btn.onclick = () => toggleQuickSymptom(sym.id);
+                container.appendChild(btn);
+            });
+        }
+
+        window.toggleQuickSymptom = function(symId) {
+            const todayStr = formatDateString(new Date());
+            if (!appData.logs) appData.logs = {};
+            if (!appData.logs[todayStr]) appData.logs[todayStr] = { flow: 'None', symptoms: [], notes: '' };
+            
+            const idx = appData.logs[todayStr].symptoms.indexOf(symId);
+            if (idx > -1) appData.logs[todayStr].symptoms.splice(idx, 1);
+            else appData.logs[todayStr].symptoms.push(symId);
+
+            saveDataToCloud();
+            renderAll();
+            showToast("Synced today's symptoms instantly!");
+        };
+
+        // --- Calendar Render ---
+        function renderCalendarGrid() {
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const titleEl = document.getElementById('cal-month-year');
+            if (titleEl) titleEl.textContent = `${monthNames[calendarMonth]} ${calendarYear}`;
+
+            const grid = document.getElementById('calendar-days-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            const settings = appData.settings || DEFAULT_SETTINGS;
+            const firstDayIndex = new Date(calendarYear, calendarMonth, 1).getDay();
+            const totalDays = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+            const lastStart = parseDateString(settings.lastPeriodStart);
+
+            for (let i = 0; i < firstDayIndex; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = "h-20 sm:h-24 rounded-2xl bg-stone-50/30 border border-transparent";
+                grid.appendChild(emptyCell);
+            }
+
+            for (let day = 1; day <= totalDays; day++) {
+                const dateObj = new Date(calendarYear, calendarMonth, day);
+                dateObj.setHours(0,0,0,0);
+                const dateStr = formatDateString(dateObj);
+
+                const diffTime = dateObj - lastStart;
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                
+                let isPeriod = false, isOvulation = false, isFertile = false;
+                if (diffDays >= 0) {
+                    const cycleDay = (diffDays % settings.cycleLength) + 1;
+                    if (cycleDay <= settings.periodLength) isPeriod = true;
+                    if (cycleDay >= 12 && cycleDay <= 14) isOvulation = true;
+                    if (cycleDay >= 10 && cycleDay <= 16) isFertile = true;
+                }
+
+                const dayLog = appData.logs && appData.logs[dateStr];
+                const cell = document.createElement('div');
+                let cellBg = "bg-white/80 border-pink-100 hover:border-rose-300";
+                let badgeIndicator = "";
+
+                if (isPeriod || (dayLog && dayLog.flow && dayLog.flow !== 'None')) {
+                    cellBg = "bg-rose-100/80 border-rose-300 text-rose-800 font-bold";
+                    badgeIndicator = `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block"></span>`;
+                } else if (isOvulation) {
+                    cellBg = "bg-amber-50 border-amber-200 text-amber-800";
+                    badgeIndicator = `<span class="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span>`;
+                } else if (isFertile) {
+                    cellBg = "bg-purple-50/60 border-purple-200";
+                    badgeIndicator = `<span class="w-1.5 h-1.5 rounded-full bg-purple-400 inline-block"></span>`;
+                }
+
+                const isToday = dateStr === formatDateString(new Date());
+                if (isToday) cellBg += " ring-2 ring-rose-400 ring-offset-1";
+
+                cell.className = `h-20 sm:h-24 rounded-2xl border p-2 flex flex-col justify-between cursor-pointer transition-all duration-200 shadow-sm ${cellBg}`;
+                
+                let symptomEmojis = "";
+                if (dayLog && dayLog.symptoms) {
+                    symptomEmojis = dayLog.symptoms.slice(0, 2).map(sId => {
+                        const s = SYMPTOM_LIST.find(x => x.id === sId);
+                        return s ? s.emoji : '';
+                    }).join('');
+                }
+
+                cell.innerHTML = `
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="${isToday ? 'bg-rose-500 text-white w-5 h-5 rounded-full flex items-center justify-center font-bold' : 'font-semibold text-stone-700'}">${day}</span>
+                        ${badgeIndicator}
+                    </div>
+                    <div class="text-center my-auto">
+                        <span class="text-sm">${symptomEmojis}</span>
+                        ${dayLog && dayLog.notes ? '<i class="fa-solid fa-note-sticky text-rose-400 text-[10px] block mt-0.5"></i>' : ''}
+                    </div>
+                `;
+                cell.onclick = () => openDayLogPanelForDate(dateStr);
+                grid.appendChild(cell);
+            }
+        }
+
+        window.changeMonth = function(dir) {
+            calendarMonth += dir;
+            if (calendarMonth > 11) { calendarMonth = 0; calendarYear++; }
+            else if (calendarMonth < 0) { calendarMonth = 11; calendarYear--; }
+            renderCalendarGrid();
+        };
+
+        // --- Day Log Panel ---
+        window.openDayLogPanelForDate = function(dateStr) {
+            selectedDateStr = dateStr;
+            const dateObj = parseDateString(dateStr);
+            document.getElementById('selected-date-title').textContent = dateObj.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+            const dayLog = (appData.logs && appData.logs[dateStr]) || { flow: 'None', symptoms: [], notes: '' };
+            tempSelectedFlow = dayLog.flow || 'None';
+            tempSelectedSymptoms = [...(dayLog.symptoms || [])];
+
+            document.querySelectorAll('.flow-btn').forEach(btn => {
+                if (btn.getAttribute('data-flow') === tempSelectedFlow) {
+                    btn.className = "flow-btn py-2.5 rounded-xl border border-rose-400 bg-rose-500 text-white text-xs font-semibold shadow-sm transition";
+                } else {
+                    btn.className = "flow-btn py-2.5 rounded-xl border border-pink-200 text-xs font-medium text-stone-600 hover:bg-pink-50 transition";
+                }
+            });
+
+            document.getElementById('log-is-period-start').checked = (dateStr === (appData.settings || DEFAULT_SETTINGS).lastPeriodStart);
+
+            const tagsContainer = document.getElementById('day-symptom-tags');
+            tagsContainer.innerHTML = '';
+            SYMPTOM_LIST.forEach(sym => {
+                const active = tempSelectedSymptoms.includes(sym.id);
+                const tagBtn = document.createElement('button');
+                tagBtn.className = `px-3.5 py-2 rounded-xl text-xs font-medium border flex items-center space-x-2 transition ${
+                    active ? 'bg-rose-500 text-white border-rose-500 shadow-sm' : 'bg-white border-pink-200 text-stone-600 hover:bg-pink-50'
+                }`;
+                tagBtn.innerHTML = `<span>${sym.emoji}</span><span>${sym.name}</span>`;
+                tagBtn.onclick = () => {
+                    const idx = tempSelectedSymptoms.indexOf(sym.id);
+                    if (idx > -1) tempSelectedSymptoms.splice(idx, 1);
+                    else tempSelectedSymptoms.push(sym.id);
+                    openDayLogPanelForDate(selectedDateStr);
+                };
+                tagsContainer.appendChild(tagBtn);
+            });
+
+            document.getElementById('day-notes-input').value = dayLog.notes || '';
+            document.getElementById('day-log-panel').classList.remove('hidden');
+        };
+
+        window.selectFlow = function(flowVal) {
+            tempSelectedFlow = flowVal;
+            document.querySelectorAll('.flow-btn').forEach(btn => {
+                if (btn.getAttribute('data-flow') === tempSelectedFlow) {
+                    btn.className = "flow-btn py-2.5 rounded-xl border border-rose-400 bg-rose-500 text-white text-xs font-semibold shadow-sm transition";
+                } else {
+                    btn.className = "flow-btn py-2.5 rounded-xl border border-pink-200 text-xs font-medium text-stone-600 hover:bg-pink-50 transition";
+                }
+            });
+        };
+
+        window.closeDayLogPanel = function() {
+            document.getElementById('day-log-panel').classList.add('hidden');
+        };
+
+        window.saveDayLog = function() {
+            const notesVal = document.getElementById('day-notes-input').value;
+            const isPeriodStartChecked = document.getElementById('log-is-period-start').checked;
+
+            if (!appData.logs) appData.logs = {};
+            appData.logs[selectedDateStr] = { flow: tempSelectedFlow, symptoms: tempSelectedSymptoms, notes: notesVal };
+
+            if (isPeriodStartChecked) {
+                if (!appData.settings) appData.settings = DEFAULT_SETTINGS;
+                appData.settings.lastPeriodStart = selectedDateStr;
+            }
+
+            saveDataToCloud();
+            closeDayLogPanel();
+            renderAll();
+            showToast("Saved & synced live to cloud! 💖");
+        };
+
+        // --- Insights & Predictions ---
+        function renderInsights() {
+            const settings = appData.settings || DEFAULT_SETTINGS;
+            document.getElementById('insight-avg-cycle').textContent = `${settings.cycleLength} Days`;
+            document.getElementById('insight-avg-period').textContent = `${settings.periodLength} Days`;
+
+            const predList = document.getElementById('predictions-list');
+            if (!predList) return;
+            predList.innerHTML = '';
+            let lastStart = parseDateString(settings.lastPeriodStart);
+
+            for (let i = 1; i <= 3; i++) {
+                lastStart.setDate(lastStart.getDate() + parseInt(settings.cycleLength));
+                const pDateStr = lastStart.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+                const item = document.createElement('div');
+                item.className = "p-4 rounded-2xl bg-pink-50/50 border border-pink-100 flex justify-between items-center";
+                item.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-xl bg-pink-100 text-rose-500 flex items-center justify-center font-bold text-sm">#${i}</div>
+                        <div>
+                            <p class="font-bold text-stone-700 text-sm">Estimated Period Start</p>
+                            <p class="text-xs text-stone-500">Expected duration: ${settings.periodLength} days</p>
+                        </div>
+                    </div>
+                    <span class="px-3 py-1.5 bg-white text-rose-600 rounded-full font-bold text-xs shadow-sm border border-pink-200">${pDateStr}</span>
+                `;
+                predList.appendChild(item);
+            }
+        }
+
+        // --- Notes & Affirmations Wall ---
+        function renderNotesWalls() {
+            const walls = [document.getElementById('love-notes-wall'), document.getElementById('partner-notes-wall')];
+            walls.forEach(wall => {
+                if (!wall) return;
+                wall.innerHTML = '';
+                if (!appData.notes || appData.notes.length === 0) {
+                    wall.innerHTML = `<p class="text-xs text-stone-400 italic">No notes yet. Send a sweet affirmation!</p>`;
+                    return;
+                }
+                appData.notes.forEach(note => {
+                    const card = document.createElement('div');
+                    card.className = "p-5 rounded-2xl bg-gradient-to-br from-pink-50/80 to-rose-50/50 border border-pink-200/60 shadow-sm flex flex-col justify-between relative";
+                    card.innerHTML = `
+                        <div class="absolute top-4 right-4 text-rose-300"><i class="fa-solid fa-heart text-sm"></i></div>
+                        <p class="text-sm text-stone-700 italic mb-4 leading-relaxed pr-6">"${note.text}"</p>
+                        <div class="flex justify-between items-center text-xs text-stone-500 pt-3 border-t border-pink-100">
+                            <span class="font-semibold text-rose-500">~ ${note.author}</span>
+                            <span>${note.date}</span>
+                        </div>
+                    `;
+                    wall.appendChild(card);
+                });
+            });
+        }
+
+        // --- Partner Checklist ---
+        function renderPartnerChecklist() {
+            const grid = document.getElementById('partner-checklist-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            PARTNER_CHECKLIST.forEach(item => {
+                const card = document.createElement('div');
+                card.className = "p-5 rounded-2xl bg-white/80 border border-pink-100 shadow-sm flex flex-col justify-between";
+                card.innerHTML = `
+                    <div>
+                        <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center mb-3"><i class="fa-solid ${item.icon} text-lg"></i></div>
+                        <h5 class="font-bold text-stone-700 text-sm mb-1">${item.title}</h5>
+                        <p class="text-xs text-stone-500 leading-relaxed">${item.desc}</p>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // --- Modals & Actions ---
+        window.openSyncModal = function() { document.getElementById('sync-modal').classList.remove('hidden'); };
+        window.closeSyncModal = function() { document.getElementById('sync-modal').classList.add('hidden'); };
+        window.saveRoomCode = function() {
+            const code = document.getElementById('modal-room-input').value.trim();
+            if (!code) return;
+            currentRoomCode = code.toUpperCase();
+            localStorage.setItem('bloom_room_code', currentRoomCode);
+            document.getElementById('display-room-code').textContent = currentRoomCode;
+            document.getElementById('partner-room-code').textContent = currentRoomCode;
+            closeSyncModal();
+            subscribeToRoom();
+            showToast(`Connected to room: ${currentRoomCode}`);
+        };
+
+        window.openSettingsModal = function() { document.getElementById('settings-modal').classList.remove('hidden'); };
+        window.closeSettingsModal = function() { document.getElementById('settings-modal').classList.add('hidden'); };
+        window.saveSettings = function() {
+            const lastStart = document.getElementById('setting-last-start').value;
+            const cycleLen = parseInt(document.getElementById('setting-cycle-length').value);
+            const periodLen = parseInt(document.getElementById('setting-period-length').value);
+
+            if (!appData.settings) appData.settings = DEFAULT_SETTINGS;
+            if (lastStart) appData.settings.lastPeriodStart = lastStart;
+            if (cycleLen) appData.settings.cycleLength = cycleLen;
+            if (periodLen) appData.settings.periodLength = periodLen;
+
+            saveDataToCloud();
+            closeSettingsModal();
+            renderAll();
+            showToast("Settings saved & synced live! 🌸");
+        };
+
+        window.openAddNoteModal = function() { document.getElementById('add-note-modal').classList.remove('hidden'); };
+        window.closeAddNoteModal = function() { document.getElementById('add-note-modal').classList.add('hidden'); };
+        window.saveNewNote = function() {
+            const text = document.getElementById('new-note-text').value;
+            const author = document.getElementById('new-note-author').value;
+            if (!text.trim()) return;
+
+            if (!appData.notes) appData.notes = [];
+            appData.notes.unshift({ text: text.trim(), author: author.trim() || 'Partner', date: 'Just now' });
+
+            saveDataToCloud();
+            closeAddNoteModal();
+            document.getElementById('new-note-text').value = '';
+            renderNotesWalls();
+            showToast("Love note sent & synced instantly! 💕");
+        };
+
+        window.openLogTodayModal = function() {
+            switchHerTab('calendar');
+            openDayLogPanelForDate(formatDateString(new Date()));
+        };
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').textContent = msg;
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            toast.classList.add('opacity-100');
+            setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
